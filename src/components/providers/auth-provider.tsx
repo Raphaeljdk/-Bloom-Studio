@@ -9,6 +9,7 @@ interface BloomUser {
   id: string;
   name: string;
   email: string;
+  role?: string;
 }
 
 interface AuthState {
@@ -69,7 +70,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (loginData?.id) {
           // 3. CRÍTICO: valida que o cookie foi setado fazendo um /me novamente.
-          // Se o segundo /me falhar, cai para tela de auth em vez de quebrar.
           try {
             const verifyRes = await fetch("/api/auth/me");
             if (verifyRes.ok) {
@@ -85,7 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // ignore verify error, fall through
           }
           // Fallback: mesmo sem verificação, libera dashboard (cookie deve estar OK)
-          setAuth({ loading: false, user: { id: loginData.id, name: loginData.name, email: loginData.email } });
+          setAuth({ loading: false, user: { id: loginData.id, name: loginData.name, email: loginData.email, role: loginData.role } });
           setView("dashboard");
         } else {
           setAuth({ loading: false, user: null });

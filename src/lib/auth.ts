@@ -57,6 +57,39 @@ export async function getCurrentUser() {
 }
 
 /**
+ * Verifica se o usuário atual é admin.
+ */
+export async function isAdmin(): Promise<boolean> {
+  const user = await getCurrentUser();
+  return user?.role === 'ADMIN';
+}
+
+/**
+ * Garante que o usuário é admin — lança erro se não for.
+ * Busca role via SQL direto para contornar cache do Turbopack.
+ */
+export async function requireAdmin() {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Não autenticado");
+
+  // Tenta via Prisma Client
+  let role = user.role;
+  if (!role) {
+    try {
+      const rows = await db.$queryRaw<Array<{ role: string }>>`SELECT role FROM User WHERE id = ${user.id}`;
+      role = rows[0]?.role;
+    } catch {
+      // ignora
+    }
+  }
+
+  if (role !== 'ADMIN') {
+    throw new Error("Acesso restrito a administradores");
+  }
+  return { ...user, role };
+}
+
+/**
  * Logout: remove o cookie.
  */
 export async function destroySession(): Promise<void> {

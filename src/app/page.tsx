@@ -10,6 +10,7 @@ import { QueryProvider } from "@/components/providers/query-provider";
 import { AuthScreen } from "@/components/bloom/auth-screen";
 import { Dashboard } from "@/components/bloom/dashboard";
 import { StoryEditor } from "@/components/bloom/story-editor";
+import { AdminPanel } from "@/components/bloom/admin-panel";
 
 export default function Home() {
   return (
@@ -32,5 +33,6 @@ function AppRouter() {
 
   if (view === "auth") return <AuthScreen />;
   if (view === "story") return <StoryEditor />;
+  if (view === "admin") return <AdminPanel />;
   return <Dashboard />;
 }

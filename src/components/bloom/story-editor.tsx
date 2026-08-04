@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import {
   ArrowLeft, Users, BookOpen, Clock, Sparkles, StickyNote,
   ChevronLeft, ChevronRight, Flower2, FileText,
-  Settings, Check, X, Pencil, Sparkle, BarChart3, Search, Target, Menu, BookOpenCheck
+  Settings, Check, X, Pencil, Sparkle, BarChart3, Search, Target, Menu, BookOpenCheck, Pen
 } from "lucide-react";
 import { useUIStore, type StorySection } from "@/stores/ui-store";
 import { useStoryDetail } from "@/hooks/use-stories";
@@ -20,6 +20,7 @@ import { AnnotationsPanel } from "./panels/annotations-panel";
 import { AnalyticsPanel } from "./panels/analytics-panel";
 import { SearchPanel } from "./panels/search-panel";
 import { FinalizePanel } from "./panels/finalize-panel";
+import { FreeWritePanel } from "./panels/free-write-panel";
 import { CoauthorChat } from "./coauthor-chat";
 import { StorySettingsDialog } from "./story-settings-dialog";
 import { ExportMenu } from "./export-menu";
@@ -46,6 +47,7 @@ const SECTION_INFO: Record<StorySection, { label: string; icon: typeof Users; de
   document: { label: "Documento", icon: FileText, description: "Visão organizada de toda a história" },
   characters: { label: "Personagens", icon: Users, description: "Quem habita sua história" },
   chapters: { label: "Capítulos", icon: BookOpen, description: "A estrutura narrativa" },
+  freewrite: { label: "Escrita Livre", icon: Pen, description: "Espaço sem estrutura para brainstorm" },
   timeline: { label: "Cronologia", icon: Clock, description: "A ordem dos acontecimentos" },
   events: { label: "Acontecimentos", icon: Sparkles, description: "Eventos importantes aprovados" },
   annotations: { label: "Anotações", icon: StickyNote, description: "Ideias, perguntas e decisões" },
@@ -386,6 +388,7 @@ export function StoryEditor() {
             {currentSection === "analytics" && <AnalyticsPanel storyId={storyId} />}
             {currentSection === "search" && <SearchPanel storyId={storyId} />}
             {currentSection === "finalize" && <FinalizePanel storyId={storyId} />}
+            {currentSection === "freewrite" && <FreeWritePanel storyId={storyId} />}
           </div>
         </main>
 

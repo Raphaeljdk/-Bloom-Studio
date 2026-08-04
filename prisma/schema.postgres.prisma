@@ -1,14 +1,20 @@
 // ========================================================
-// BLOOM STUDIO — Prisma Schema
-// Estúdio de criação literária colaborativa com IA coautora
+// PRISMA SCHEMA — Bloom Studio (PostgreSQL para Vercel)
 // ========================================================
+// Este schema é para PostgreSQL (produção na Vercel).
+// Para dev local, use schema.prisma (SQLite).
+//
+// Para migrar:
+// 1. Crie um banco PostgreSQL (Vercel Postgres, Neon, Supabase)
+// 2. Configure DATABASE_URL nas variáveis de ambiente da Vercel
+// 3. Rode: prisma db push
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -118,7 +124,7 @@ model ChatSession {
 
 model ChatMessage {
   id             String      @id @default(cuid())
-  role           String      // USER | ASSISTANT | SYSTEM
+  role           String
   content        String
   suggestionRef  String?
   suggestionType String?

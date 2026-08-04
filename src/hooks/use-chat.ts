@@ -92,8 +92,18 @@ export function useChat(storyId: string | null) {
           isRejected: false,
         });
       }
-      // Invalida important events para atualizar painel
-      qc.invalidateQueries({ queryKey: ["story", storyId] });
+      // Se houver ações executadas, mostra toast e invalida tudo
+      if (result.actions && result.actions.length > 0) {
+        result.actions.forEach((a) => {
+          toast.success(a.confirmation, { duration: 4000 });
+        });
+        // Invalida tudo para recarregar personagens, capítulos, etc.
+        qc.invalidateQueries({ queryKey: ["story", storyId] });
+        qc.invalidateQueries({ queryKey: ["stories"] });
+      } else {
+        // Invalida important events para atualizar painel
+        qc.invalidateQueries({ queryKey: ["story", storyId] });
+      }
     },
     onError: (e: Error) => {
       toast.error(`Flora não pôde responder: ${e.message}`);

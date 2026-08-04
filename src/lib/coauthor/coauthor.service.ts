@@ -8,6 +8,7 @@ import { db } from "@/lib/db";
 import { loadStoryContext, serializeContext } from "./context-builder";
 import { buildSystemPrompt } from "./prompt-templates";
 import { processResponse } from "./suggestion-guard";
+import { parseActions, executeAction, type ParsedAction } from "./action-parser";
 import ZAI from "z-ai-web-dev-sdk";
 
 /**
@@ -87,13 +88,35 @@ export async function sendToFlora(params: {
   // 7. Suggestion Guard analisa a resposta
   const guardResult = await processResponse(rawResponse, storyId);
 
-  // 8. Persiste mensagem do assistente (displayContent + referência às sugestões)
+  // 7.5 Action Parser: detecta e executa ações (adicionar personagem, capítulo, etc)
+  const { actions, cleanContent: contentAfterActions } = parseActions(guardResult.displayContent || rawResponse);
+
+  const executedActions: Array<{ confirmation: string }> = [];
+  for (const action of actions) {
+    try {
+      await executeAction(action, storyId);
+      executedActions.push({ confirmation: action.confirmation });
+    } catch (err) {
+      console.error("[coauthor] erro ao executar ação:", err);
+    }
+  }
+
+  // Conteúdo final: texto limpo + confirmações de ações executadas
+  let finalContent = contentAfterActions;
+  if (executedActions.length > 0) {
+    const confirmations = executedActions.map((a) => a.confirmation).join("\n");
+    finalContent = finalContent
+      ? `${finalContent}\n\n---\n${confirmations}`
+      : confirmations;
+  }
+
+  // 8. Persiste mensagem do assistente
   const suggestionRef = guardResult.suggestions[0]?.id || null;
   const assistantMessage = await db.chatMessage.create({
     data: {
       sessionId,
       role: "ASSISTANT",
-      content: guardResult.displayContent || rawResponse,
+      content: finalContent || rawResponse,
       suggestionRef,
       suggestionType: guardResult.suggestions.length > 0 ? "IMPORTANT_EVENT" : null,
       isApproved: false,
@@ -102,8 +125,9 @@ export async function sendToFlora(params: {
 
   return {
     assistantMessageId: assistantMessage.id,
-    displayContent: guardResult.displayContent || rawResponse,
+    displayContent: finalContent || rawResponse,
     suggestions: guardResult.suggestions,
+    actions: executedActions,
     rawResponse,
   };
 }

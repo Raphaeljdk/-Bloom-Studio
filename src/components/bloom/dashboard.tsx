@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Plus, Search, Flower2, BookOpen, Users, Clock,
-  Sparkles, Trash2, Calendar, LogOut, Filter
+  Sparkles, Trash2, Calendar, LogOut, Filter, Shield
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useStories } from "@/hooks/use-stories";
@@ -34,6 +34,7 @@ export function Dashboard() {
   const { stories, isLoading, create, isCreating, remove } = useStories();
   const queryClient = useQueryClient();
   const openStory = useUIStore((s) => s.openStory);
+  const setView = useUIStore((s) => s.setView);
   const searchQuery = useUIStore((s) => s.searchQuery);
   const setSearchQuery = useUIStore((s) => s.setSearchQuery);
   const statusFilter = useUIStore((s) => s.statusFilter);
@@ -43,6 +44,18 @@ export function Dashboard() {
   const [newDesc, setNewDesc] = useState("");
   const [newGenre, setNewGenre] = useState("");
   const [newTone, setNewTone] = useState("");
+
+  // Hook simples para ler o user (inclui role)
+  const [userRole, setUserRole] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    const check = () => {
+      const auth = (window as unknown as { __bloomAuth?: { user?: { role?: string } } }).__bloomAuth;
+      if (auth?.user) setUserRole(auth.user.role);
+    };
+    check();
+    const i = setInterval(check, 500);
+    return () => clearInterval(i);
+  }, []);
 
   const handleCreate = async () => {
     if (!newTitle.trim()) return;
@@ -96,6 +109,18 @@ export function Dashboard() {
           </div>
           <div className="flex items-center gap-1 sm:gap-2">
             <ThemeSwitcher />
+            {userRole === "ADMIN" && (
+              <Button
+                onClick={() => setView("admin")}
+                variant="ghost"
+                size="sm"
+                className="text-[#8B6B7A] hover:text-[#B24C63] hover:bg-[#FADADD]"
+                title="Painel administrativo"
+              >
+                <Shield className="w-4 h-4" />
+                <span className="hidden sm:inline ml-1">Admin</span>
+              </Button>
+            )}
             <Button
               onClick={handleDemo}
               variant="ghost"
@@ -103,7 +128,7 @@ export function Dashboard() {
               className="text-[#8B6B7A] hover:text-[#B24C63] hover:bg-[#FADADD]"
             >
               <Sparkles className="w-4 h-4 sm:mr-2" />
-              <span className="hidden sm:inline">História de exemplo</span>
+              <span className="hidden sm:inline">Exemplo</span>
             </Button>
             <Button
               onClick={handleLogout}
@@ -163,51 +188,158 @@ export function Dashboard() {
                 Nova história
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-white border-[#E6C2C7]">
+            <DialogContent className="bg-white border-[#E6C2C7] max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle className="flora-text-primary">Plantar nova história 🌷</DialogTitle>
+                <DialogTitle className="flora-text-primary text-xl">🌷 Plantar nova história</DialogTitle>
+                <p className="text-sm flora-text-secondary">
+                  Comece do zero ou use um template. Tudo é editável depois — sem limitações.
+                </p>
               </DialogHeader>
-              <div className="space-y-4 py-2">
+              <div className="space-y-5 py-2">
+                {/* Templates rápidos */}
                 <div className="space-y-2">
-                  <Label className="flora-text-primary">Título *</Label>
+                  <Label className="flora-text-primary text-xs uppercase tracking-wider">Templates (opcional)</Label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {[
+                      { key: "blank", label: "Em branco", emoji: "📄", desc: "Comece do zero" },
+                      { key: "romance", label: "Romance", emoji: "💕", desc: "3 atos" },
+                      { key: "fantasy", label: "Fantasia", emoji: "🐉", desc: "Jornada do herói" },
+                      { key: "mystery", label: "Suspense", emoji: "🔍", desc: "Pistas e twist" },
+                    ].map((t) => (
+                      <button
+                        key={t.key}
+                        onClick={() => {
+                          if (t.key === "blank") return;
+                          const templates: Record<string, { title: string; desc: string; genre: string; tone: string }> = {
+                            romance: {
+                              title: "",
+                              desc: "Uma história de amor em três atos: encontro, conflito, resolução.",
+                              genre: "Romance",
+                              tone: "Emocional, intimista",
+                            },
+                            fantasy: {
+                              title: "",
+                              desc: "Uma jornada épica com sistema mágico, mentor e provações.",
+                              genre: "Fantasia",
+                              tone: "Épico, aventura",
+                            },
+                            mystery: {
+                              title: "",
+                              desc: "Um mistério com pistas, red herrings e reviravolta final.",
+                              genre: "Suspense",
+                              tone: "Tenso, investigativo",
+                            },
+                          };
+                          if (templates[t.key]) {
+                            setNewDesc(templates[t.key].desc);
+                            setNewGenre(templates[t.key].genre);
+                            setNewTone(templates[t.key].tone);
+                            if (!newTitle.trim()) setNewTitle(".");
+                          }
+                        }}
+                        className="p-3 rounded-xl border border-[#E6C2C7] hover:bg-[#FADADD] hover:border-[#C48D9E] transition text-center"
+                      >
+                        <div className="text-2xl mb-1">{t.emoji}</div>
+                        <p className="text-xs font-medium flora-text-primary">{t.label}</p>
+                        <p className="text-[10px] flora-text-secondary">{t.desc}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Título com sugestão */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="flora-text-primary">Título</Label>
+                    <span className="text-xs flora-text-secondary italic">
+                      Não sabe? Coloque "." e peça sugestão à Flora depois
+                    </span>
+                  </div>
                   <Input
                     value={newTitle}
                     onChange={(e) => setNewTitle(e.target.value)}
-                    placeholder="Ex: O Jardim das Memórias Perdidas"
-                    className="border-[#E6C2C7] focus:border-[#C48D9E]"
+                    placeholder="Ex: O Jardim das Memórias Perdidas (ou apenas um .)"
+                    className="border-[#E6C2C7] focus:border-[#C48D9E] text-base"
+                    maxLength={120}
                   />
                 </div>
+
+                {/* Descrição */}
                 <div className="space-y-2">
-                  <Label className="flora-text-primary">Descrição</Label>
+                  <Label className="flora-text-primary">Sinopse / Ideia inicial</Label>
                   <Textarea
                     value={newDesc}
                     onChange={(e) => setNewDesc(e.target.value)}
-                    placeholder="Uma sinopse breve da história..."
-                    rows={3}
+                    placeholder="Escreva livremente: pode ser uma sinopse, uma ideia solta, um personagem, uma cena, ou deixe em branco para descobrir no caminho..."
+                    rows={4}
+                    maxLength={1000}
                     className="border-[#E6C2C7] focus:border-[#C48D9E] resize-none"
                   />
+                  <p className="text-xs flora-text-secondary">{newDesc.length}/1000</p>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+
+                {/* Gênero + Tom + Status */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="space-y-2">
-                    <Label className="flora-text-primary">Gênero</Label>
+                    <Label className="flora-text-primary text-xs">Gênero</Label>
                     <Input
                       value={newGenre}
                       onChange={(e) => setNewGenre(e.target.value)}
                       placeholder="Realismo mágico"
+                      list="genres-create"
                       className="border-[#E6C2C7] focus:border-[#C48D9E]"
                     />
+                    <datalist id="genres-create">
+                      <option value="Realismo mágico" />
+                      <option value="Romance" />
+                      <option value="Fantasia" />
+                      <option value="Ficção científica" />
+                      <option value="Mistério" />
+                      <option value="Suspense" />
+                      <option value="Drama" />
+                      <option value="Aventura" />
+                      <option value="Terror" />
+                      <option value="Histórico" />
+                      <option value="Distopia" />
+                      <option value="Conto" />
+                    </datalist>
                   </div>
                   <div className="space-y-2">
-                    <Label className="flora-text-primary">Tom</Label>
+                    <Label className="flora-text-primary text-xs">Tom</Label>
                     <Input
                       value={newTone}
                       onChange={(e) => setNewTone(e.target.value)}
-                      placeholder="Melancólico, esperançoso"
+                      placeholder="Melancólico"
+                      list="tones-create"
                       className="border-[#E6C2C7] focus:border-[#C48D9E]"
                     />
+                    <datalist id="tones-create">
+                      <option value="Melancólico" />
+                      <option value="Esperançoso" />
+                      <option value="Sombrio" />
+                      <option value="Leve" />
+                      <option value="Contemplativo" />
+                      <option value="Tenso" />
+                      <option value="Lírico" />
+                      <option value="Cômico" />
+                    </datalist>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="flora-text-primary text-xs">Status inicial</Label>
+                    <Select defaultValue="DRAFT">
+                      <SelectTrigger className="bg-white border-[#E6C2C7]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="DRAFT">Rascunho</SelectItem>
+                        <SelectItem value="IN_PROGRESS">Em progresso</SelectItem>
+                        <SelectItem value="ON_HOLD">Pausada</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
-                <div className="flex justify-end gap-2 pt-2">
+
+                <div className="flex justify-end gap-2 pt-2 sticky bottom-0 bg-white pb-2">
                   <Button variant="ghost" onClick={() => setCreateOpen(false)}>
                     Cancelar
                   </Button>
@@ -216,7 +348,7 @@ export function Dashboard() {
                     disabled={isCreating || !newTitle.trim()}
                     className="flora-gradient-accent text-white"
                   >
-                    {isCreating ? "Criando..." : "Criar história"}
+                    {isCreating ? "Plantando..." : "🌱 Plantar história"}
                   </Button>
                 </div>
               </div>
