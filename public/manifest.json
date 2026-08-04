@@ -1,0 +1,38 @@
+{
+  "name": "Bloom Studio — Estúdio de Criação Literária",
+  "short_name": "Bloom Studio",
+  "description": "Estúdio de criação literária colaborativa com coautora IA Flora 🌸",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#FDF2F0",
+  "theme_color": "#C48D9E",
+  "categories": ["productivity", "books", "lifestyle"],
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='42' fill='%23C48D9E'/%3E%3Ctext x='96' y='125' font-size='100' text-anchor='middle' fill='white'%3E🌸%3C/text%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%23C48D9E'/%3E%3Ctext x='256' y='335' font-size='266' text-anchor='middle' fill='white'%3E🌸%3C/text%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Nova história",
+      "url": "/?action=new",
+      "description": "Criar uma nova história"
+    },
+    {
+      "name": "Minhas histórias",
+      "url": "/",
+      "description": "Ver todas as histórias"
+    }
+  ]
+}

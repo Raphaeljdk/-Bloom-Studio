@@ -10,6 +10,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useStories } from "@/hooks/use-stories";
 import { useUIStore } from "@/stores/ui-store";
 import { useStoryStore } from "@/stores/story-store";
+import { ThemeSwitcher } from "./theme-switcher";
 import { toast } from "sonner";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger
@@ -83,24 +84,26 @@ export function Dashboard() {
     <div className="min-h-screen flora-bg-primary flora-pattern">
       {/* Header */}
       <header className="border-b border-[#E6C2C7] bg-white/70 backdrop-blur sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl flora-gradient-accent flex items-center justify-center flora-shadow-soft">
-              <Flower2 className="w-5 h-5 text-white" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl flora-gradient-accent flex items-center justify-center flora-shadow-soft flex-shrink-0">
+              <Flower2 className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
             </div>
-            <div>
-              <h1 className="text-xl font-bold flora-text-primary">Bloom Studio</h1>
-              <p className="text-xs flora-text-secondary">Estúdio de criação literária</p>
+            <div className="min-w-0">
+              <h1 className="text-base sm:text-xl font-bold flora-text-primary truncate">Bloom Studio</h1>
+              <p className="text-xs flora-text-secondary hidden sm:block">Estúdio de criação literária</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <ThemeSwitcher />
             <Button
               onClick={handleDemo}
               variant="ghost"
+              size="sm"
               className="text-[#8B6B7A] hover:text-[#B24C63] hover:bg-[#FADADD]"
             >
-              <Sparkles className="w-4 h-4 mr-2" />
-              História de exemplo
+              <Sparkles className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">História de exemplo</span>
             </Button>
             <Button
               onClick={handleLogout}
@@ -114,17 +117,17 @@ export function Dashboard() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {/* Hero */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
+          className="mb-6 sm:mb-8"
         >
-          <h2 className="text-4xl font-bold flora-text-primary mb-2">
+          <h2 className="text-2xl sm:text-4xl font-bold flora-text-primary mb-2">
             Suas histórias 🌸
           </h2>
-          <p className="flora-text-secondary">
+          <p className="text-sm sm:text-base flora-text-secondary">
             Cada jardim começa com uma semente. Escolha uma história para continuar ou plante uma nova.
           </p>
         </motion.div>

@@ -3,6 +3,8 @@
 import { useUIStore } from "@/stores/ui-store";
 import { GlobalErrorBoundary } from "@/components/providers/global-error-boundary";
 import GlobalErrorHandler from "@/components/providers/global-error-handler";
+import { PWARegister } from "@/components/providers/pwa-register";
+import { ThemeProvider } from "@/components/providers/theme-provider";
 import { AuthProvider } from "@/components/providers/auth-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { AuthScreen } from "@/components/bloom/auth-screen";
@@ -13,11 +15,14 @@ export default function Home() {
   return (
     <GlobalErrorBoundary>
       <GlobalErrorHandler />
-      <QueryProvider>
-        <AuthProvider>
-          <AppRouter />
-        </AuthProvider>
-      </QueryProvider>
+      <PWARegister />
+      <ThemeProvider>
+        <QueryProvider>
+          <AuthProvider>
+            <AppRouter />
+          </AuthProvider>
+        </QueryProvider>
+      </ThemeProvider>
     </GlobalErrorBoundary>
   );
 }

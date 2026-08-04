@@ -248,3 +248,179 @@
     50% { transform: translateY(-8px) rotate(8deg); }
   }
 }
+
+/* ========================================================
+   TEMAS VISUAIS ALTERNATIVOS — Bloom Studio
+   ======================================================== */
+
+/* 🌙 Tema Noturno Escuro */
+[data-theme="dark"] {
+  --color-bg-primary: #1A0F16;
+  --color-bg-secondary: #2A1A22;
+  --color-bg-tertiary: #3A242E;
+  --color-accent-primary: #5A3646;
+  --color-accent-secondary: #D4818B;
+  --color-accent-tertiary: #B24C63;
+  --color-text-primary: #FDF2F0;
+  --color-text-secondary: #C48D9E;
+  --color-text-on-accent: #FDF2F0;
+  --color-border-flora: #4A2C3A;
+
+  --background: #1A0F16;
+  --foreground: #FDF2F0;
+  --card: #2A1A22;
+  --card-foreground: #FDF2F0;
+  --popover: #2A1A22;
+  --popover-foreground: #FDF2F0;
+  --primary: #D4818B;
+  --primary-foreground: #1A0F16;
+  --secondary: #3A242E;
+  --secondary-foreground: #FDF2F0;
+  --muted: #3A242E;
+  --muted-foreground: #C48D9E;
+  --accent: #4A2C3A;
+  --accent-foreground: #FDF2F0;
+  --border: #4A2C3A;
+  --input: #4A2C3A;
+  --ring: #D4818B;
+  --sidebar: #2A1A22;
+  --sidebar-foreground: #FDF2F0;
+}
+
+/* 🌿 Tema Bosque Verde */
+[data-theme="forest"] {
+  --color-bg-primary: #F4F1E8;
+  --color-bg-secondary: #E8E4D4;
+  --color-bg-tertiary: #C5C9A4;
+  --color-accent-primary: #6B8E5A;
+  --color-accent-secondary: #3F5C2F;
+  --color-accent-tertiary: #5A7A4A;
+  --color-text-primary: #2A3318;
+  --color-text-secondary: #5A6B4A;
+  --color-text-on-accent: #F4F1E8;
+  --color-border-flora: #C5C9A4;
+
+  --background: #F4F1E8;
+  --foreground: #2A3318;
+  --card: #FFFFFF;
+  --card-foreground: #2A3318;
+  --popover: #FFFFFF;
+  --popover-foreground: #2A3318;
+  --primary: #3F5C2F;
+  --primary-foreground: #F4F1E8;
+  --secondary: #E8E4D4;
+  --secondary-foreground: #2A3318;
+  --muted: #E8E4D4;
+  --muted-foreground: #5A6B4A;
+  --accent: #C5C9A4;
+  --accent-foreground: #2A3318;
+  --border: #C5C9A4;
+  --input: #C5C9A4;
+  --ring: #6B8E5A;
+  --sidebar: #6B8E5A;
+  --sidebar-foreground: #F4F1E8;
+}
+
+/* 🌊 Tema Azul Sereno */
+[data-theme="ocean"] {
+  --color-bg-primary: #F0F5F9;
+  --color-bg-secondary: #DDE8F0;
+  --color-bg-tertiary: #A8C5D8;
+  --color-accent-primary: #5A7A99;
+  --color-accent-secondary: #2E4A66;
+  --color-accent-tertiary: #4A6B8A;
+  --color-text-primary: #1A2E3F;
+  --color-text-secondary: #4A6B7A;
+  --color-text-on-accent: #F0F5F9;
+  --color-border-flora: #A8C5D8;
+
+  --background: #F0F5F9;
+  --foreground: #1A2E3F;
+  --card: #FFFFFF;
+  --card-foreground: #1A2E3F;
+  --popover: #FFFFFF;
+  --popover-foreground: #1A2E3F;
+  --primary: #2E4A66;
+  --primary-foreground: #F0F5F9;
+  --secondary: #DDE8F0;
+  --secondary-foreground: #1A2E3F;
+  --muted: #DDE8F0;
+  --muted-foreground: #4A6B7A;
+  --accent: #A8C5D8;
+  --accent-foreground: #1A2E3F;
+  --border: #A8C5D8;
+  --input: #A8C5D8;
+  --ring: #5A7A99;
+  --sidebar: #5A7A99;
+  --sidebar-foreground: #F0F5F9;
+}
+
+/* Tema padrão (rosa) — garante consistência */
+[data-theme="rose"] {
+  /* Mantém os valores já definidos em :root */
+}
+
+/* Animações extras */
+@keyframes flora-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.flora-pulse {
+  animation: flora-pulse 2s ease-in-out infinite;
+}
+
+@keyframes flora-shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.flora-shimmer {
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: flora-shimmer 2s linear infinite;
+}
+
+@keyframes flora-bounce-in {
+  0% { opacity: 0; transform: scale(0.3); }
+  50% { opacity: 1; transform: scale(1.05); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.flora-bounce-in {
+  animation: flora-bounce-in 0.5s ease-out;
+}
+
+@keyframes flora-petal-fall {
+  0% { transform: translateY(-100vh) rotate(0deg); opacity: 0; }
+  10% { opacity: 0.6; }
+  90% { opacity: 0.6; }
+  100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}
+
+.flora-petal-fall {
+  animation: flora-petal-fall 8s linear infinite;
+}
+
+/* Animação de gradiente suave */
+@keyframes flora-gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.flora-gradient-animated {
+  background-size: 200% 200%;
+  animation: flora-gradient-shift 6s ease infinite;
+}
+
+/* Skeleton loading melhorado */
+@keyframes flora-skeleton {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.flora-skeleton {
+  background: linear-gradient(90deg, var(--color-bg-secondary) 25%, var(--color-bg-tertiary) 50%, var(--color-bg-secondary) 75%);
+  background-size: 200% 100%;
+  animation: flora-skeleton 1.5s ease-in-out infinite;
+}

@@ -11,7 +11,9 @@ export type StorySection =
   | "chapters"
   | "timeline"
   | "events"
-  | "annotations";
+  | "annotations"
+  | "analytics"
+  | "search";
 
 interface UIState {
   view: AppView;

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, Sparkles, Check, X, Flower2, RefreshCw } from "lucide-react";
 import { useChat } from "@/hooks/use-chat";
+import { VoiceInput } from "./voice-input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
@@ -232,6 +233,10 @@ export function CoauthorChat({ storyId }: Props) {
             rows={1}
             className="bg-[#FDF2F0] border-[#E6C2C7] focus:border-[#C48D9E] focus:ring-[#C48D9E] resize-none min-h-[44px] max-h-32 text-sm"
           />
+          <VoiceInput
+            onTranscript={(text) => setInput((prev) => (prev ? prev + " " + text : text))}
+            disabled={isSending}
+          />
           <Button
             type="submit"
             disabled={!input.trim() || isSending}
@@ -245,7 +250,7 @@ export function CoauthorChat({ storyId }: Props) {
           </Button>
         </form>
         <p className="text-xs flora-text-secondary mt-1.5 text-center">
-          🌸 A Flora tem acesso a todo o contexto da sua história
+          🌸 A Flora tem acesso a todo o contexto da sua história · 🎤 Ditado disponível
         </p>
       </div>
     </div>

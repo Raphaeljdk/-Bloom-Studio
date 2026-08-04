@@ -5,12 +5,11 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, Users, BookOpen, Clock, Sparkles, StickyNote,
-  Download, ChevronLeft, ChevronRight, Flower2, FileText,
-  Settings, Check, X, Pencil, Sparkle
+  ChevronLeft, ChevronRight, Flower2, FileText,
+  Settings, Check, X, Pencil, Sparkle, BarChart3, Search, Target, Menu
 } from "lucide-react";
 import { useUIStore, type StorySection } from "@/stores/ui-store";
 import { useStoryDetail } from "@/hooks/use-stories";
-import { useStoryStore } from "@/stores/story-store";
 import { StorySidebar } from "./story-sidebar";
 import { DocumentPanel } from "./panels/document-panel";
 import { CharactersPanel } from "./panels/characters-panel";
@@ -18,10 +17,17 @@ import { ChaptersPanel } from "./panels/chapters-panel";
 import { TimelinePanel } from "./panels/timeline-panel";
 import { ImportantEventsPanel } from "./panels/events-panel";
 import { AnnotationsPanel } from "./panels/annotations-panel";
+import { AnalyticsPanel } from "./panels/analytics-panel";
+import { SearchPanel } from "./panels/search-panel";
 import { CoauthorChat } from "./coauthor-chat";
 import { StorySettingsDialog } from "./story-settings-dialog";
+import { ExportMenu } from "./export-menu";
+import { FocusMode } from "./focus-mode";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Sheet, SheetContent, SheetHeader, SheetTitle
+} from "@/components/ui/sheet";
 import { api } from "@/lib/api-client";
 import { toast } from "sonner";
 
@@ -42,12 +48,10 @@ const SECTION_INFO: Record<StorySection, { label: string; icon: typeof Users; de
   timeline: { label: "Cronologia", icon: Clock, description: "A ordem dos acontecimentos" },
   events: { label: "Acontecimentos", icon: Sparkles, description: "Eventos importantes aprovados" },
   annotations: { label: "Anotações", icon: StickyNote, description: "Ideias, perguntas e decisões" },
+  analytics: { label: "Analytics", icon: BarChart3, description: "Estatísticas e insights da escrita" },
+  search: { label: "Buscar", icon: Search, description: "Busca inteligente na história" },
 };
 
-/**
- * Verifica se o título é um placeholder fraco ( ".", "...", muito curto, etc.)
- * e sugere ao usuário pedir uma sugestão à Flora.
- */
 function isTitlePlaceholder(title: string): boolean {
   const trimmed = title.trim();
   if (trimmed.length <= 3) return true;
@@ -68,10 +72,10 @@ export function StoryEditor() {
 
   const { data: story, isLoading } = useStoryDetail(storyId);
   const [meta, setMeta] = useState<StoryMeta | null>(null);
-  const [exporting, setExporting] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [focusMode, setFocusMode] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
-  // Edição inline do título no header
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState("");
   const titleInputRef = useRef<HTMLInputElement>(null);
@@ -92,7 +96,6 @@ export function StoryEditor() {
     }
   }, [story]);
 
-  // Foca o input quando entra em modo de edição
   useEffect(() => {
     if (editingTitle && titleInputRef.current) {
       titleInputRef.current.focus();
@@ -100,7 +103,6 @@ export function StoryEditor() {
     }
   }, [editingTitle]);
 
-  // Mutation para atualizar a história (reutilizada para título inline e modal)
   const updateMutation = useMutation({
     mutationFn: (data: Partial<{ title: string; description: string; status: string; genre: string; tone: string }>) =>
       api.updateStory(storyId!, data),
@@ -153,11 +155,7 @@ export function StoryEditor() {
   };
 
   const handleSaveSettings = async (data: {
-    title: string;
-    description: string;
-    genre: string;
-    tone: string;
-    status: string;
+    title: string; description: string; genre: string; tone: string; status: string;
   }) => {
     try {
       await updateMutation.mutateAsync(data);
@@ -173,28 +171,6 @@ export function StoryEditor() {
       setSettingsOpen(false);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao salvar");
-    }
-  };
-
-  const handleExport = async () => {
-    if (!storyId) return;
-    setExporting(true);
-    try {
-      const data = await api.exportMarkdown(storyId);
-      const blob = new Blob([data.markdown], { type: "text/markdown;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = data.filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      toast.success("História exportada como Markdown 🌸");
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Erro ao exportar");
-    } finally {
-      setExporting(false);
     }
   };
 
@@ -215,10 +191,25 @@ export function StoryEditor() {
   const SectionIcon = section.icon;
   const showTitleHint = isTitlePlaceholder(meta.title) && !editingTitle;
 
+  const handleSectionClick = (s: StorySection) => {
+    setSection(s);
+    setMobileSidebarOpen(false);
+  };
+
   return (
     <div className="h-screen flex flex-col flora-bg-primary overflow-hidden">
       {/* Top header */}
-      <header className="flex-shrink-0 h-14 bg-[#C48D9E] text-white flex items-center px-4 gap-3 border-b border-white/10">
+      <header className="flex-shrink-0 h-14 bg-[#C48D9E] text-white flex items-center px-2 sm:px-4 gap-2 sm:gap-3 border-b border-white/10">
+        {/* Mobile: hamburger */}
+        <Button
+          onClick={() => setMobileSidebarOpen(true)}
+          variant="ghost"
+          size="sm"
+          className="lg:hidden text-white hover:bg-white/15"
+        >
+          <Menu className="w-4 h-4" />
+        </Button>
+
         <Button
           onClick={closeStory}
           variant="ghost"
@@ -226,9 +217,9 @@ export function StoryEditor() {
           className="text-white hover:bg-white/15"
         >
           <ArrowLeft className="w-4 h-4 mr-1" />
-          Voltar
+          <span className="hidden sm:inline">Voltar</span>
         </Button>
-        <div className="h-6 w-px bg-white/30" />
+        <div className="hidden sm:block h-6 w-px bg-white/30" />
         <Flower2 className="w-5 h-5 flex-shrink-0" />
 
         {/* Título editável inline */}
@@ -247,14 +238,14 @@ export function StoryEditor() {
               />
               <button
                 onMouseDown={(e) => { e.preventDefault(); saveTitle(); }}
-                className="p-1 hover:bg-white/15 rounded transition"
+                className="p-1 hover:bg-white/15 rounded transition flex-shrink-0"
                 title="Salvar (Enter)"
               >
                 <Check className="w-4 h-4" />
               </button>
               <button
                 onMouseDown={(e) => { e.preventDefault(); cancelEditTitle(); }}
-                className="p-1 hover:bg-white/15 rounded transition"
+                className="p-1 hover:bg-white/15 rounded transition flex-shrink-0"
                 title="Cancelar (Esc)"
               >
                 <X className="w-4 h-4" />
@@ -264,7 +255,7 @@ export function StoryEditor() {
             <>
               <h1
                 onClick={startEditTitle}
-                className="font-semibold truncate cursor-pointer hover:bg-white/10 px-2 py-1 rounded transition flex items-center gap-1.5 group"
+                className="font-semibold truncate cursor-pointer hover:bg-white/10 px-2 py-1 rounded transition flex items-center gap-1.5 group min-w-0"
                 title="Clique para editar o título"
               >
                 <span className="truncate">{meta.title || "(sem título)"}</span>
@@ -273,7 +264,7 @@ export function StoryEditor() {
               {showTitleHint && (
                 <button
                   onClick={() => setSettingsOpen(true)}
-                  className="text-xs px-2 py-0.5 rounded-full bg-white/20 hover:bg-white/30 transition flex items-center gap-1 flex-shrink-0"
+                  className="hidden sm:inline text-xs px-2 py-0.5 rounded-full bg-white/20 hover:bg-white/30 transition items-center gap-1 flex-shrink-0"
                   title="Sugira um título melhor"
                 >
                   <Sparkle className="w-3 h-3" />
@@ -284,13 +275,18 @@ export function StoryEditor() {
           )}
         </div>
 
-        {meta.genre && (
-          <span className="hidden md:inline text-xs px-2 py-1 rounded-full bg-white/15 flex-shrink-0">
-            {meta.genre}
-          </span>
-        )}
+        {/* Ações */}
+        <Button
+          onClick={() => setFocusMode(true)}
+          variant="ghost"
+          size="sm"
+          className="text-white hover:bg-white/15 flex-shrink-0"
+          title="Modo Foco (Pomodoro)"
+        >
+          <Target className="w-4 h-4" />
+          <span className="hidden md:inline ml-1">Foco</span>
+        </Button>
 
-        {/* Botão de configurações */}
         <Button
           onClick={() => setSettingsOpen(true)}
           variant="ghost"
@@ -301,16 +297,12 @@ export function StoryEditor() {
           <Settings className="w-4 h-4" />
         </Button>
 
-        <Button
-          onClick={handleExport}
+        <ExportMenu
+          storyId={storyId}
           variant="ghost"
           size="sm"
-          disabled={exporting}
           className="text-white hover:bg-white/15 flex-shrink-0"
-        >
-          <Download className="w-4 h-4 mr-1" />
-          <span className="hidden sm:inline">{exporting ? "Exportando..." : "Exportar"}</span>
-        </Button>
+        />
 
         <Button
           onClick={toggleChat}
@@ -324,11 +316,11 @@ export function StoryEditor() {
 
       {/* 3 columns */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Coluna 1 — Sidebar */}
+        {/* Coluna 1 — Sidebar (desktop) */}
         <aside
-          className={`flex-shrink-0 transition-all duration-300 ${
+          className={`hidden lg:flex flex-shrink-0 transition-all duration-300 ${
             sidebarCollapsed ? "w-16" : "w-60"
-          } bg-[#C48D9E] text-white flex flex-col`}
+          } bg-[#C48D9E] text-white flex-col`}
         >
           <div className="p-3 flex items-center justify-between">
             {!sidebarCollapsed && (
@@ -350,22 +342,36 @@ export function StoryEditor() {
           />
         </aside>
 
+        {/* Sidebar mobile (Sheet) */}
+        <Sheet open={mobileSidebarOpen} onOpenChange={setMobileSidebarOpen}>
+          <SheetContent side="left" className="w-72 bg-[#C48D9E] text-white border-0 p-0">
+            <SheetHeader className="p-4 border-b border-white/15">
+              <SheetTitle className="text-white flex items-center gap-2">
+                <Flower2 className="w-4 h-4" />
+                {meta.title}
+              </SheetTitle>
+            </SheetHeader>
+            <div className="flex-1 overflow-y-auto">
+              <StorySidebar
+                collapsed={false}
+                currentSection={currentSection}
+                onSection={handleSectionClick}
+              />
+            </div>
+          </SheetContent>
+        </Sheet>
+
         {/* Coluna 2 — Main content */}
-        <main className="flex-1 overflow-hidden flex flex-col">
-          <div className="flex-shrink-0 px-6 py-4 border-b border-[#E6C2C7] bg-white/40 backdrop-blur">
+        <main className="flex-1 overflow-hidden flex flex-col min-w-0">
+          <div className="flex-shrink-0 px-4 sm:px-6 py-3 sm:py-4 border-b border-[#E6C2C7] bg-white/40 backdrop-blur">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl flora-gradient-accent flex items-center justify-center">
+              <div className="w-9 h-9 rounded-xl flora-gradient-accent flex items-center justify-center flex-shrink-0">
                 <SectionIcon className="w-4 h-4 text-white" />
               </div>
               <div className="flex-1 min-w-0">
-                <h2 className="text-lg font-bold flora-text-primary">{section.label}</h2>
-                <p className="text-xs flora-text-secondary">{section.description}</p>
+                <h2 className="text-base sm:text-lg font-bold flora-text-primary truncate">{section.label}</h2>
+                <p className="text-xs flora-text-secondary truncate">{section.description}</p>
               </div>
-              {currentSection === "document" && meta.description && (
-                <p className="hidden lg:block text-xs flora-text-secondary italic max-w-xs truncate">
-                  &ldquo;{meta.description}&rdquo;
-                </p>
-              )}
             </div>
           </div>
           <div className="flex-1 overflow-y-auto">
@@ -375,21 +381,38 @@ export function StoryEditor() {
             {currentSection === "timeline" && <TimelinePanel storyId={storyId} />}
             {currentSection === "events" && <ImportantEventsPanel storyId={storyId} />}
             {currentSection === "annotations" && <AnnotationsPanel storyId={storyId} />}
+            {currentSection === "analytics" && <AnalyticsPanel storyId={storyId} />}
+            {currentSection === "search" && <SearchPanel storyId={storyId} />}
           </div>
         </main>
 
-        {/* Coluna 3 — Coauthor chat */}
+        {/* Coluna 3 — Coauthor chat (desktop) */}
         {chatOpen && (
           <motion.aside
             initial={{ x: 50, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: 50, opacity: 0 }}
-            className="w-full sm:w-96 flex-shrink-0 border-l border-[#E6C2C7] bg-white flex flex-col"
+            className="hidden md:flex w-96 flex-shrink-0 border-l border-[#E6C2C7] bg-white flex-col"
           >
             <CoauthorChat storyId={storyId} />
           </motion.aside>
         )}
       </div>
+
+      {/* Chat mobile (overlay) — quando chatOpen em mobile */}
+      {chatOpen && (
+        <div className="md:hidden fixed inset-0 z-40 bg-white flex flex-col">
+          <div className="flex items-center justify-between p-3 border-b border-[#E6C2C7] bg-[#C48D9E] text-white">
+            <span className="font-medium">🌸 Flora</span>
+            <Button onClick={toggleChat} variant="ghost" size="sm" className="text-white">
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+          <div className="flex-1 overflow-hidden">
+            <CoauthorChat storyId={storyId} />
+          </div>
+        </div>
+      )}
 
       {/* Modal de configurações */}
       <StorySettingsDialog
@@ -397,6 +420,13 @@ export function StoryEditor() {
         onOpenChange={setSettingsOpen}
         story={meta}
         onSave={handleSaveSettings}
+      />
+
+      {/* Modo Foco */}
+      <FocusMode
+        open={focusMode}
+        onClose={() => setFocusMode(false)}
+        storyId={storyId}
       />
     </div>
   );
