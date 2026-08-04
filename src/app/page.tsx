@@ -1,6 +1,8 @@
 "use client";
 
 import { useUIStore } from "@/stores/ui-store";
+import { GlobalErrorBoundary } from "@/components/providers/global-error-boundary";
+import GlobalErrorHandler from "@/components/providers/global-error-handler";
 import { AuthProvider } from "@/components/providers/auth-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { AuthScreen } from "@/components/bloom/auth-screen";
@@ -9,11 +11,14 @@ import { StoryEditor } from "@/components/bloom/story-editor";
 
 export default function Home() {
   return (
-    <QueryProvider>
-      <AuthProvider>
-        <AppRouter />
-      </AuthProvider>
-    </QueryProvider>
+    <GlobalErrorBoundary>
+      <GlobalErrorHandler />
+      <QueryProvider>
+        <AuthProvider>
+          <AppRouter />
+        </AuthProvider>
+      </QueryProvider>
+    </GlobalErrorBoundary>
   );
 }
 

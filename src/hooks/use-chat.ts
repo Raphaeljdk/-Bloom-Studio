@@ -14,7 +14,16 @@ import { toast } from "sonner";
  */
 export function useChat(storyId: string | null) {
   const qc = useQueryClient();
-  const { messages, setMessages, addMessage, setFloraTyping, attachSuggestionToMessage, resolveSuggestion } = useChatStore();
+
+  // Todos os hooks no topo — sem chamadas condicionais
+  const messages = useChatStore((s) => s.messages);
+  const setMessages = useChatStore((s) => s.setMessages);
+  const addMessage = useChatStore((s) => s.addMessage);
+  const setFloraTyping = useChatStore((s) => s.setFloraTyping);
+  const attachSuggestionToMessage = useChatStore((s) => s.attachSuggestionToMessage);
+  const resolveSuggestion = useChatStore((s) => s.resolveSuggestion);
+  const isFloraTyping = useChatStore((s) => s.isFloraTyping);
+
   const addEvent = useStoryStore((s) => s.addEvent);
   const removeEvent = useStoryStore((s) => s.removeEvent);
 
@@ -23,7 +32,7 @@ export function useChat(storyId: string | null) {
     queryKey: ["chat", storyId],
     queryFn: async () => {
       const data = await api.getChatHistory(storyId!);
-      const msgs: ChatMessage[] = data.messages.map((m) => ({
+      const msgs: ChatMessage[] = (data.messages || []).map((m) => ({
         id: m.id,
         role: m.role as "USER" | "ASSISTANT" | "SYSTEM",
         content: m.content,
@@ -122,7 +131,7 @@ export function useChat(storyId: string | null) {
   return {
     messages,
     isLoading: historyQuery.isLoading,
-    isFloraTyping: useChatStore((s) => s.isFloraTyping),
+    isFloraTyping,
     send: sendMutation.mutateAsync,
     isSending: sendMutation.isPending,
     approveSuggestion: approveMutation.mutateAsync,
