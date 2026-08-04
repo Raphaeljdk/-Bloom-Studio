@@ -1,0 +1,126 @@
+// ========================================================
+// BLOOM STUDIO — Prisma Schema
+// Estúdio de criação literária colaborativa com IA coautora
+// ========================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  avatar    String?
+  stories   Story[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Story {
+  id              String             @id @default(cuid())
+  title           String
+  description     String?
+  status          String             @default("DRAFT")
+  colorTheme      String             @default("rose")
+  genre           String?
+  tone            String?
+  userId          String
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  characters      Character[]
+  chapters        Chapter[]
+  timelineEvents  TimelineEvent[]
+  importantEvents ImportantEvent[]
+  annotations     Annotation[]
+  chatSessions    ChatSession[]
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+}
+
+model Character {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  role        String?
+  traits      String?
+  storyId     String
+  story       Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Chapter {
+  id        String   @id @default(cuid())
+  number    Int
+  title     String?
+  summary   String?
+  content   String?
+  status    String   @default("DRAFT")
+  storyId   String
+  story     Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TimelineEvent {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  order       Int
+  date        String?
+  storyId     String
+  story       Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ImportantEvent {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  impact      String?
+  isApproved  Boolean  @default(false)
+  suggestedBy String   @default("USER")
+  storyId     String
+  story       Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Annotation {
+  id        String   @id @default(cuid())
+  content   String
+  category  String   @default("IDEA")
+  storyId   String
+  story     Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ChatSession {
+  id        String        @id @default(cuid())
+  title     String?
+  storyId   String
+  story     Story         @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  messages  ChatMessage[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model ChatMessage {
+  id             String      @id @default(cuid())
+  role           String      // USER | ASSISTANT | SYSTEM
+  content        String
+  suggestionRef  String?
+  suggestionType String?
+  isApproved     Boolean     @default(false)
+  sessionId      String
+  session        ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  createdAt      DateTime    @default(now())
+}

@@ -1,0 +1,250 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+/* ========================================================
+   BLOOM STUDIO — TEMA "JARDIM ROMÂNTICO"
+   Paleta rosa exigida pelo briefing
+   ======================================================== */
+:root {
+  --radius: 0.875rem;
+
+  /* Backgrounds */
+  --color-bg-primary: #FDF2F0;      /* Bege rosado — fundo principal */
+  --color-bg-secondary: #FADADD;    /* Pêssego rosado — cards e seções */
+  --color-bg-tertiary: #E6C2C7;     /* Rosa chá — hover e secundários */
+
+  /* Accents */
+  --color-accent-primary: #C48D9E;   /* Rosa queimado antigo — sidebar */
+  --color-accent-secondary: #B24C63; /* Vinho rosado — botões principais */
+  --color-accent-tertiary: #D4818B;  /* Rosa médio — links, ícones ativos */
+
+  /* Text */
+  --color-text-primary: #4A2C3A;     /* Vinho escuro — texto principal */
+  --color-text-secondary: #8B6B7A;   /* Rosa acinzentado — texto secundário */
+  --color-text-on-accent: #FFFFFF;   /* Branco sobre fundos escuros */
+
+  /* Borders & status */
+  --color-border-flora: #E6C2C7;
+  --color-success: #7EB8A2;
+  --color-error: #D4818B;
+  --color-warning: #E8C98B;
+
+  /* Mapeamento para tokens shadcn */
+  --background: #FDF2F0;
+  --foreground: #4A2C3A;
+  --card: #FFFFFF;
+  --card-foreground: #4A2C3A;
+  --popover: #FFFFFF;
+  --popover-foreground: #4A2C3A;
+  --primary: #B24C63;
+  --primary-foreground: #FFFFFF;
+  --secondary: #FADADD;
+  --secondary-foreground: #4A2C3A;
+  --muted: #FADADD;
+  --muted-foreground: #8B6B7A;
+  --accent: #E6C2C7;
+  --accent-foreground: #4A2C3A;
+  --destructive: #D4818B;
+  --border: #E6C2C7;
+  --input: #E6C2C7;
+  --ring: #C48D9E;
+  --chart-1: #B24C63;
+  --chart-2: #C48D9E;
+  --chart-3: #D4818B;
+  --chart-4: #E8C98B;
+  --chart-5: #7EB8A2;
+  --sidebar: #C48D9E;
+  --sidebar-foreground: #FFFFFF;
+  --sidebar-primary: #B24C63;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #B24C63;
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: rgba(255, 255, 255, 0.18);
+  --sidebar-ring: #FFFFFF;
+}
+
+.dark {
+  --background: #2A1A22;
+  --foreground: #FDF2F0;
+  --card: #3A242E;
+  --card-foreground: #FDF2F0;
+  --popover: #3A242E;
+  --popover-foreground: #FDF2F0;
+  --primary: #D4818B;
+  --primary-foreground: #2A1A22;
+  --secondary: #4A2C3A;
+  --secondary-foreground: #FDF2F0;
+  --muted: #4A2C3A;
+  --muted-foreground: #C48D9E;
+  --accent: #5A3646;
+  --accent-foreground: #FDF2F0;
+  --destructive: #D4818B;
+  --border: #5A3646;
+  --input: #5A3646;
+  --ring: #D4818B;
+  --sidebar: #2A1A22;
+  --sidebar-foreground: #FDF2F0;
+  --sidebar-primary: #D4818B;
+  --sidebar-primary-foreground: #2A1A22;
+  --sidebar-accent: #5A3646;
+  --sidebar-accent-foreground: #FDF2F0;
+  --sidebar-border: rgba(255, 255, 255, 0.12);
+  --sidebar-ring: #D4818B;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    background-image:
+      radial-gradient(circle at 12% 18%, rgba(196, 141, 158, 0.08) 0%, transparent 40%),
+      radial-gradient(circle at 88% 82%, rgba(212, 129, 139, 0.08) 0%, transparent 40%);
+    background-attachment: fixed;
+    font-feature-settings: "ss01", "ss02";
+  }
+
+  /* Scrollbar Jardim Romântico */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #E6C2C7, #C48D9E);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #D4818B, #B24C63);
+    background-clip: padding-box;
+    border: 2px solid transparent;
+  }
+}
+
+/* ========================================================
+   Utilitários do tema
+   ======================================================== */
+@layer utilities {
+  .flora-bg-primary { background-color: var(--color-bg-primary); }
+  .flora-bg-secondary { background-color: var(--color-bg-secondary); }
+  .flora-bg-tertiary { background-color: var(--color-bg-tertiary); }
+  .flora-accent-primary { background-color: var(--color-accent-primary); }
+  .flora-accent-secondary { background-color: var(--color-accent-secondary); }
+  .flora-accent-tertiary { background-color: var(--color-accent-tertiary); }
+  .flora-text-primary { color: var(--color-text-primary); }
+  .flora-text-secondary { color: var(--color-text-secondary); }
+  .flora-text-on-accent { color: var(--color-text-on-accent); }
+  .flora-border { border-color: var(--color-border-flora); }
+
+  .flora-gradient-soft {
+    background: linear-gradient(135deg, #FDF2F0 0%, #FADADD 50%, #E6C2C7 100%);
+  }
+  .flora-gradient-accent {
+    background: linear-gradient(135deg, #C48D9E 0%, #B24C63 100%);
+  }
+  .flora-gradient-romantic {
+    background: linear-gradient(135deg, #FADADD 0%, #E6C2C7 50%, #C48D9E 100%);
+  }
+
+  /* Padrões florais sutis */
+  .flora-pattern {
+    background-image:
+      radial-gradient(circle at 20% 50%, rgba(196, 141, 158, 0.05) 0%, transparent 25%),
+      radial-gradient(circle at 80% 20%, rgba(212, 129, 139, 0.05) 0%, transparent 25%),
+      radial-gradient(circle at 40% 80%, rgba(232, 201, 139, 0.04) 0%, transparent 25%);
+  }
+
+  .flora-shadow-soft {
+    box-shadow: 0 4px 24px -8px rgba(178, 76, 99, 0.15), 0 2px 8px -4px rgba(74, 44, 58, 0.08);
+  }
+  .flora-shadow-accent {
+    box-shadow: 0 8px 32px -12px rgba(178, 76, 99, 0.35), 0 4px 12px -6px rgba(74, 44, 58, 0.12);
+  }
+
+  .flora-glow {
+    box-shadow: 0 0 0 4px rgba(212, 129, 139, 0.15);
+  }
+
+  /* Animação de "digitando" da Flora */
+  .flora-typing-dot {
+    animation: flora-typing 1.4s infinite ease-in-out both;
+  }
+  .flora-typing-dot:nth-child(1) { animation-delay: -0.32s; }
+  .flora-typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+  @keyframes flora-typing {
+    0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+    40% { transform: scale(1); opacity: 1; }
+  }
+
+  .flora-fade-in {
+    animation: flora-fade-in 0.4s ease-out;
+  }
+  @keyframes flora-fade-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .flora-slide-in {
+    animation: flora-slide-in 0.3s ease-out;
+  }
+  @keyframes flora-slide-in {
+    from { opacity: 0; transform: translateX(-12px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .flora-petal-float {
+    animation: flora-petal 6s ease-in-out infinite;
+  }
+  @keyframes flora-petal {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-8px) rotate(8deg); }
+  }
+}
