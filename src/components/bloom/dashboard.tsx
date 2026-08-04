@@ -244,30 +244,60 @@ export function Dashboard() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: idx * 0.04 }}
                   onClick={() => openStory(story.id)}
-                  className="group relative cursor-pointer rounded-2xl bg-[#FADADD] flora-border border p-5 hover:flora-shadow-accent transition-all duration-300 hover:-translate-y-1"
+                  className="group relative cursor-pointer rounded-2xl bg-[#FADADD] flora-border border p-0 hover:flora-shadow-accent transition-all duration-300 hover:-translate-y-1 overflow-hidden"
                 >
-                  {/* Status badge */}
-                  <div className="flex items-start justify-between mb-3">
-                    <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${status.color}`}>
-                      {status.label}
-                    </span>
-                    <button
-                      onClick={(e) => handleDelete(e, story.id, story.title)}
-                      className="opacity-0 group-hover:opacity-100 transition text-[#8B6B7A] hover:text-[#D4818B] p-1"
-                      aria-label="Remover"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
+                  {/* Capa (se existir) */}
+                  {story.coverUrl ? (
+                    <div className="relative h-40 overflow-hidden">
+                      <img
+                        src={story.coverUrl}
+                        alt={`Capa de ${story.title}`}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-[#4A2C3A]/80 via-transparent to-transparent" />
+                      {/* Status badge sobre a capa */}
+                      <span className={`absolute top-2 left-2 text-xs px-2.5 py-1 rounded-full font-medium ${status.color}`}>
+                        {status.label}
+                      </span>
+                      <button
+                        onClick={(e) => handleDelete(e, story.id, story.title)}
+                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition bg-white/80 text-[#8B6B7A] hover:text-[#D4818B] p-1 rounded-full"
+                        aria-label="Remover"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                      {/* Título sobre a capa */}
+                      <h3 className="absolute bottom-2 left-3 right-3 text-lg font-bold text-white line-clamp-2 drop-shadow-lg">
+                        {story.title}
+                      </h3>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="p-5">
+                        <div className="flex items-start justify-between mb-3">
+                          <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${status.color}`}>
+                            {status.label}
+                          </span>
+                          <button
+                            onClick={(e) => handleDelete(e, story.id, story.title)}
+                            className="opacity-0 group-hover:opacity-100 transition text-[#8B6B7A] hover:text-[#D4818B] p-1"
+                            aria-label="Remover"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
 
-                  <h3 className="text-lg font-bold flora-text-primary mb-2 line-clamp-2">
-                    {story.title}
-                  </h3>
-                  <p className="text-sm flora-text-secondary line-clamp-3 mb-4 min-h-[60px]">
-                    {story.description || "Sem descrição ainda."}
-                  </p>
+                        <h3 className="text-lg font-bold flora-text-primary mb-2 line-clamp-2">
+                          {story.title}
+                        </h3>
+                        <p className="text-sm flora-text-secondary line-clamp-3 mb-4 min-h-[60px]">
+                          {story.description || "Sem descrição ainda."}
+                        </p>
+                      </div>
+                    </>
+                  )}
 
-                  <div className="flex items-center gap-4 text-xs flora-text-secondary pt-3 border-t border-[#E6C2C7]">
+                  <div className="flex items-center gap-4 text-xs flora-text-secondary pt-3 pb-4 px-5 border-t border-[#E6C2C7]">
                     <span className="flex items-center gap-1">
                       <BookOpen className="w-3.5 h-3.5" />
                       {story.chaptersCount} cap.

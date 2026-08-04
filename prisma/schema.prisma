@@ -31,6 +31,8 @@ model Story {
   colorTheme      String             @default("rose")
   genre           String?
   tone            String?
+  coverUrl        String?
+  coverStyle      String?
   userId          String
   user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   characters      Character[]

@@ -12,6 +12,8 @@ export interface StorySummary {
   colorTheme: string;
   genre: string | null;
   tone: string | null;
+  coverUrl: string | null;
+  coverStyle: string | null;
   chaptersCount: number;
   charactersCount: number;
   updatedAt: string;

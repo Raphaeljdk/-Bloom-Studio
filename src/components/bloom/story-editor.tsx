@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import {
   ArrowLeft, Users, BookOpen, Clock, Sparkles, StickyNote,
   ChevronLeft, ChevronRight, Flower2, FileText,
-  Settings, Check, X, Pencil, Sparkle, BarChart3, Search, Target, Menu
+  Settings, Check, X, Pencil, Sparkle, BarChart3, Search, Target, Menu, BookOpenCheck
 } from "lucide-react";
 import { useUIStore, type StorySection } from "@/stores/ui-store";
 import { useStoryDetail } from "@/hooks/use-stories";
@@ -19,6 +19,7 @@ import { ImportantEventsPanel } from "./panels/events-panel";
 import { AnnotationsPanel } from "./panels/annotations-panel";
 import { AnalyticsPanel } from "./panels/analytics-panel";
 import { SearchPanel } from "./panels/search-panel";
+import { FinalizePanel } from "./panels/finalize-panel";
 import { CoauthorChat } from "./coauthor-chat";
 import { StorySettingsDialog } from "./story-settings-dialog";
 import { ExportMenu } from "./export-menu";
@@ -50,6 +51,7 @@ const SECTION_INFO: Record<StorySection, { label: string; icon: typeof Users; de
   annotations: { label: "Anotações", icon: StickyNote, description: "Ideias, perguntas e decisões" },
   analytics: { label: "Analytics", icon: BarChart3, description: "Estatísticas e insights da escrita" },
   search: { label: "Buscar", icon: Search, description: "Busca inteligente na história" },
+  finalize: { label: "Finalizar", icon: BookOpenCheck, description: "Capa, conclusão e exportação final" },
 };
 
 function isTitlePlaceholder(title: string): boolean {
@@ -383,6 +385,7 @@ export function StoryEditor() {
             {currentSection === "annotations" && <AnnotationsPanel storyId={storyId} />}
             {currentSection === "analytics" && <AnalyticsPanel storyId={storyId} />}
             {currentSection === "search" && <SearchPanel storyId={storyId} />}
+            {currentSection === "finalize" && <FinalizePanel storyId={storyId} />}
           </div>
         </main>
 

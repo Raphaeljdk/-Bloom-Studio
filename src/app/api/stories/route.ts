@@ -14,6 +14,20 @@ export async function GET() {
     },
   });
 
+  // Busca coverUrl/coverStyle via SQL direto (fallback para Prisma Client em cache)
+  // SQLite não suporta IN com array via Prisma template — usa query individual
+  let coverMap: Record<string, { coverUrl: string | null; coverStyle: string | null }> = {};
+  for (const s of stories) {
+    try {
+      const coverRows = await db.$queryRaw<Array<{ coverUrl: string | null; coverStyle: string | null }>>`SELECT coverUrl, coverStyle FROM Story WHERE id = ${s.id}`;
+      if (coverRows && coverRows[0]) {
+        coverMap[s.id] = { coverUrl: coverRows[0].coverUrl, coverStyle: coverRows[0].coverStyle };
+      }
+    } catch {
+      // ignora
+    }
+  }
+
   return NextResponse.json(
     stories.map((s) => ({
       id: s.id,
@@ -23,6 +37,8 @@ export async function GET() {
       colorTheme: s.colorTheme,
       genre: s.genre,
       tone: s.tone,
+      coverUrl: coverMap[s.id]?.coverUrl ?? null,
+      coverStyle: coverMap[s.id]?.coverStyle ?? null,
       chaptersCount: s._count.chapters,
       charactersCount: s._count.characters,
       createdAt: s.createdAt,
@@ -64,6 +80,8 @@ export async function POST(req: Request) {
     colorTheme: story.colorTheme,
     genre: story.genre,
     tone: story.tone,
+    coverUrl: story.coverUrl,
+    coverStyle: story.coverStyle,
     chaptersCount: 0,
     charactersCount: 0,
     createdAt: story.createdAt,

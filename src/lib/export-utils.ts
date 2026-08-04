@@ -8,6 +8,7 @@ interface StoryData {
   status: string;
   genre: string | null;
   tone: string | null;
+  coverUrl?: string | null;
   characters: Array<{ name: string; description: string | null; role: string | null; traits: string | null }>;
   chapters: Array<{ number: number; title: string | null; summary: string | null; content: string | null; status: string }>;
   timeline: Array<{ title: string; description: string | null; date: string | null; order: number }>;
@@ -224,16 +225,28 @@ export function exportHTML(story: StoryData): void {
   download(`${slugify(story.title)}.html`, html, "text/html");
 }
 
-// ===== PDF (via impressão) =====
+// ===== PDF (via impressão) com capa integrada =====
 export function exportPDF(story: StoryData): void {
+  const coverHtml = story.coverUrl
+    ? `<div class="cover-page"><img src="${escapeHtml(story.coverUrl)}" alt="Capa" class="cover-image" /><div class="cover-overlay"><h1 class="cover-title">🌸 ${escapeHtml(story.title)}</h1>${story.description ? `<p class="cover-desc">${escapeHtml(story.description)}</p>` : ""}${story.genre ? `<p class="cover-genre">${escapeHtml(story.genre)}</p>` : ""}</div></div>`
+    : `<h1>🌸 ${escapeHtml(story.title)}</h1>${story.description ? `<p class="desc">${escapeHtml(story.description)}</p>` : ""}`;
+
   const html = `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
 <title>${escapeHtml(story.title)}</title>
+${story.coverUrl ? `<meta name="cover-image" content="${escapeHtml(story.coverUrl)}" />` : ""}
 <style>
   @page { margin: 2.5cm; }
+  @page :first { margin: 0; }
   body { font-family: Georgia, 'Times New Roman', serif; color: #2a1a22; line-height: 1.7; max-width: 700px; margin: 0 auto; padding: 2rem; }
+  .cover-page { position: relative; width: 100%; height: 100vh; min-height: 600px; page-break-after: always; margin: -2rem -2rem 2rem; overflow: hidden; }
+  .cover-image { width: 100%; height: 100%; object-fit: cover; }
+  .cover-overlay { position: absolute; bottom: 0; left: 0; right: 0; padding: 3rem 2rem 2rem; background: linear-gradient(to top, rgba(74, 44, 58, 0.95) 0%, rgba(74, 44, 58, 0.7) 60%, transparent 100%); color: white; }
+  .cover-title { font-size: 2.5rem; color: white !important; margin-bottom: 0.5rem; text-shadow: 0 2px 8px rgba(0,0,0,0.5); }
+  .cover-desc { font-style: italic; color: rgba(255,255,255,0.9) !important; margin-bottom: 0.5rem; font-size: 1rem; }
+  .cover-genre { font-size: 0.85rem; color: rgba(255,255,255,0.7) !important; text-transform: uppercase; letter-spacing: 0.1em; }
   h1 { text-align: center; font-size: 2rem; color: #4A2C3A; }
   .desc { text-align: center; font-style: italic; color: #6b4a58; }
   .meta { text-align: center; font-size: 0.85rem; color: #8B6B7A; margin-bottom: 2rem; }
@@ -246,13 +259,12 @@ export function exportPDF(story: StoryData): void {
   .event { border-left: 3px solid #7EB8A2; padding-left: 1rem; margin-bottom: 1rem; }
   .footer { text-align: center; margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #E6C2C7; font-size: 0.8rem; color: #8B6B7A; font-style: italic; }
   ol { padding-left: 1.5rem; }
-  @media print { body { padding: 0; } }
+  @media print { body { padding: 0; max-width: none; } .cover-page { margin: 0; } }
 </style>
 </head>
 <body>
-  <h1>🌸 ${escapeHtml(story.title)}</h1>
-  ${story.description ? `<p class="desc">${escapeHtml(story.description)}</p>` : ""}
-  <p class="meta">${STATUS_LABELS[story.status] || story.status}${story.genre ? ` · ${escapeHtml(story.genre)}` : ""}${story.tone ? ` · Tom: ${escapeHtml(story.tone)}` : ""}</p>
+  ${coverHtml}
+  ${story.coverUrl ? `<div style="page-break-before: always;"></div><p class="meta">${STATUS_LABELS[story.status] || story.status}${story.genre ? ` · ${escapeHtml(story.genre)}` : ""}${story.tone ? ` · Tom: ${escapeHtml(story.tone)}` : ""}</p>` : `<p class="meta">${STATUS_LABELS[story.status] || story.status}${story.genre ? ` · ${escapeHtml(story.genre)}` : ""}${story.tone ? ` · Tom: ${escapeHtml(story.tone)}` : ""}</p>`}
 
   <h2>🎭 Personagens</h2>
   ${story.characters.length === 0 ? "<p><em>Nenhum personagem.</em></p>" : story.characters.map((c, i) => `
@@ -283,7 +295,7 @@ export function exportPDF(story: StoryData): void {
   if (!printWindow) return;
   printWindow.document.write(html);
   printWindow.document.close();
-  setTimeout(() => printWindow.print(), 400);
+  setTimeout(() => printWindow.print(), 600);
 }
 
 // ===== TXT =====

@@ -56,11 +56,20 @@ export const api = {
       method: "POST",
       body: JSON.stringify(data),
     }),
-  updateStory: (id: string, data: Partial<{ title: string; description: string; status: string; genre: string; tone: string }>) =>
+  updateStory: (id: string, data: Partial<{ title: string; description: string; status: string; genre: string; tone: string; coverUrl: string | null; coverStyle: string | null }>) =>
     request<unknown>(`/api/stories/${id}`, {
       method: "PATCH",
       body: JSON.stringify(data),
     }),
+
+  // Cover generation
+  generateCover: (storyId: string, style: string) =>
+    request<{ coverUrl: string; coverStyle: string; styleLabel: string }>(`/api/stories/${storyId}/cover`, {
+      method: "POST",
+      body: JSON.stringify({ style }),
+    }),
+  removeCover: (storyId: string) =>
+    request<void>(`/api/stories/${storyId}/cover`, { method: "DELETE" }),
   deleteStory: (id: string) =>
     request<void>(`/api/stories/${id}`, { method: "DELETE" }),
 

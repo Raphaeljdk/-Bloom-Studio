@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 
+// Força recompilação — coverUrl adicionado ao schema
+const _FORCE_RELOAD = "cover-v1";
+
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -23,6 +26,19 @@ export async function GET(
 
   if (!story) return NextResponse.json({ error: "Não encontrada" }, { status: 404 });
 
+  // Busca coverUrl/coverStyle via SQL direto (fallback para Prisma Client em cache)
+  let coverUrl: string | null = null;
+  let coverStyle: string | null = null;
+  try {
+    const coverRows = await db.$queryRaw<Array<{ coverUrl: string | null; coverStyle: string | null }>>`SELECT coverUrl, coverStyle FROM Story WHERE id = ${id}`;
+    if (coverRows && coverRows[0]) {
+      coverUrl = coverRows[0].coverUrl;
+      coverStyle = coverRows[0].coverStyle;
+    }
+  } catch {
+    // colunas podem não existir ainda — ignora
+  }
+
   return NextResponse.json({
     id: story.id,
     title: story.title,
@@ -31,6 +47,8 @@ export async function GET(
     colorTheme: story.colorTheme,
     genre: story.genre,
     tone: story.tone,
+    coverUrl,
+    coverStyle,
     characters: story.characters,
     chapters: story.chapters,
     timeline: story.timelineEvents,

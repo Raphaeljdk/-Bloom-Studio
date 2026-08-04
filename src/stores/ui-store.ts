@@ -13,7 +13,8 @@ export type StorySection =
   | "events"
   | "annotations"
   | "analytics"
-  | "search";
+  | "search"
+  | "finalize";
 
 interface UIState {
   view: AppView;

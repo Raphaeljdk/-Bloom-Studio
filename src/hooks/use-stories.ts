@@ -93,6 +93,8 @@ export function useStoryDetail(storyId: string | null) {
         colorTheme: string;
         genre: string | null;
         tone: string | null;
+        coverUrl: string | null;
+        coverStyle: string | null;
         characters: never[];
         chapters: never[];
         timeline: never[];

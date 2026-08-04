@@ -1,6 +1,6 @@
 "use client";
 
-import { FileText, Users, BookOpen, Clock, Sparkles, StickyNote, Flower2, BarChart3, Search } from "lucide-react";
+import { FileText, Users, BookOpen, Clock, Sparkles, StickyNote, Flower2, BarChart3, Search, BookOpenCheck } from "lucide-react";
 import type { StorySection } from "@/stores/ui-store";
 import { useStoryStore } from "@/stores/story-store";
 
@@ -21,6 +21,7 @@ export function StorySidebar({ collapsed, currentSection, onSection }: Props) {
     annotations: data?.annotations.length || 0,
     analytics: "",
     search: "",
+    finalize: "",
   };
 
   const items: Array<{ key: StorySection; label: string; icon: typeof Users }> = [
@@ -32,6 +33,7 @@ export function StorySidebar({ collapsed, currentSection, onSection }: Props) {
     { key: "annotations", label: "Anotações", icon: StickyNote },
     { key: "analytics", label: "Analytics", icon: BarChart3 },
     { key: "search", label: "Buscar", icon: Search },
+    { key: "finalize", label: "Finalizar", icon: BookOpenCheck },
   ];
 
   return (
