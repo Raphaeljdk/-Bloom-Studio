@@ -154,6 +154,7 @@ export const api = {
       assistantMessageId: string;
       displayContent: string;
       suggestions: Array<{ id: string; title: string; description: string; impact: string | null }>;
+      actions?: Array<{ confirmation: string }>;
     }>(`/api/stories/${storyId}/chat`, {
       method: "POST",
       body: JSON.stringify({ content }),

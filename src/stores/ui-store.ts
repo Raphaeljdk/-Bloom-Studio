@@ -4,7 +4,7 @@
 
 import { create } from "zustand";
 
-export type AppView = "auth" | "dashboard" | "story";
+export type AppView = "auth" | "dashboard" | "story" | "admin";
 export type StorySection =
   | "document"
   | "characters"
@@ -12,6 +12,7 @@ export type StorySection =
   | "timeline"
   | "events"
   | "annotations"
+  | "freewrite"
   | "analytics"
   | "search"
   | "finalize";

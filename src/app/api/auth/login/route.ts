@@ -13,13 +13,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Email já cadastrado" }, { status: 409 });
     }
     const user = await db.user.create({
-      data: { name, email, password },
+      data: { name, email, password, role: "USER" },
     });
     await createSession(user.id);
     return NextResponse.json({
       id: user.id,
       name: user.name,
       email: user.email,
+      role: user.role,
     });
   }
 
@@ -34,16 +35,18 @@ export async function POST(req: Request) {
       id: user.id,
       name: user.name,
       email: user.email,
+      role: user.role,
     });
   }
 
-  // Fluxo demo: entra automaticamente como usuário demo
+  // Fluxo demo: entra automaticamente como usuário demo (que é ADMIN)
   const demo = await ensureDemoUser();
   await createSession(demo.id);
   return NextResponse.json({
     id: demo.id,
     name: demo.name,
     email: demo.email,
+    role: demo.role,
     demo: true,
   });
 }
