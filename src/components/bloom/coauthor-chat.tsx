@@ -58,9 +58,9 @@ export function CoauthorChat({ storyId }: Props) {
   };
 
   const suggestions = [
-    "Pode sugerir um plot twist para o capítulo atual?",
-    "Como posso desenvolver melhor o personagem principal?",
+    "Que perguntas devo fazer sobre meu protagonista?",
     "Há alguma inconsistência na cronologia?",
+    "Pode sugerir um acontecimento importante?",
     "Me ajude a pensar no próximo capítulo.",
   ];
 
@@ -270,8 +270,8 @@ function WelcomeScreen({
       </div>
       <h3 className="font-bold flora-text-primary text-lg mb-1">Olá! Sou a Flora 🌷</h3>
       <p className="text-sm flora-text-secondary mb-6 max-w-xs">
-        Sua coautora no Bloom Studio. Posso ajudar com ideias, desenvolvimento de
-        personagens, sugestões de cenas e muito mais.
+        Sua coautora no Bloom Studio. Você escreve — eu auxilio com ideias,
+        perguntas e sugestões para desenvolver sua história.
       </p>
       <div className="w-full space-y-2">
         <p className="text-xs flora-text-secondary uppercase tracking-wider mb-2">

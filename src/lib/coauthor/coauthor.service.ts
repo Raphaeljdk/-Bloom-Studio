@@ -76,8 +76,8 @@ export async function sendToFlora(params: {
       { role: "system", content: systemPrompt },
       ...conversationMessages,
     ],
-    temperature: 0.85,
-    max_tokens: 1200,
+    temperature: 0.8,
+    max_tokens: 700,
   });
 
   const rawResponse: string =

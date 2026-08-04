@@ -2,7 +2,8 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { useUIStore } from "@/stores/ui-store";
-import { api } from "@/lib/api-client";
+import { useStoryStore } from "@/stores/story-store";
+import { useChatStore } from "@/stores/chat-store";
 
 interface AuthState {
   loading: boolean;
@@ -13,20 +14,63 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const setView = useUIStore((s) => s.setView);
   const [auth, setAuth] = useState<AuthState>({ loading: true, user: null });
 
+  // Verifica sessão existente ao montar
   useEffect(() => {
+    let cancelled = false;
     fetch("/api/auth/me")
       .then((r) => r.json())
       .then((data) => {
+        if (cancelled) return;
         if (data.user) {
           setAuth({ loading: false, user: data.user });
           setView("dashboard");
         } else {
-          setAuth({ loading: false, user: null });
-          setView("auth");
+          // Sem sessão → entra como demo automaticamente (sem fricção)
+          fetch("/api/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({}),
+          })
+            .then((r) => r.json())
+            .then((u) => {
+              if (cancelled) return;
+              if (u && u.id) {
+                setAuth({ loading: false, user: u });
+                setView("dashboard");
+              } else {
+                setAuth({ loading: false, user: null });
+                setView("auth");
+              }
+            })
+            .catch(() => {
+              if (cancelled) return;
+              setAuth({ loading: false, user: null });
+              setView("auth");
+            });
         }
       })
-      .catch(() => setAuth({ loading: false, user: null }));
+      .catch(() => {
+        if (cancelled) return;
+        setAuth({ loading: false, user: null });
+        setView("auth");
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
+
+  // Escuta evento global de 401 (despachado pelo api-client)
+  // Reseta gracioso: limpa stores + volta para tela de auth
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      setAuth({ loading: false, user: null });
+      setView("auth");
+      useStoryStore.getState().reset();
+      useChatStore.getState().clear();
+    };
+    window.addEventListener("bloom:unauthorized", handleUnauthorized);
+    return () => window.removeEventListener("bloom:unauthorized", handleUnauthorized);
+  }, [setView]);
 
   const login = async (email?: string, password?: string, name?: string) => {
     const res = await fetch("/api/auth/login", {
@@ -48,6 +92,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await fetch("/api/auth/logout", { method: "POST" });
     setAuth({ loading: false, user: null });
     setView("auth");
+    useStoryStore.getState().reset();
+    useChatStore.getState().clear();
   };
 
   // Expor via window para os componentes acessarem sem prop drilling

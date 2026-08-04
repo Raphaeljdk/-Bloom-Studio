@@ -6,6 +6,7 @@ import { create } from "zustand";
 
 export type AppView = "auth" | "dashboard" | "story";
 export type StorySection =
+  | "document"
   | "characters"
   | "chapters"
   | "timeline"
@@ -36,7 +37,7 @@ interface UIState {
 export const useUIStore = create<UIState>((set) => ({
   view: "auth",
   currentStoryId: null,
-  currentSection: "chapters",
+  currentSection: "document",
   currentChapterId: null,
   sidebarCollapsed: false,
   chatOpen: true,
@@ -48,7 +49,7 @@ export const useUIStore = create<UIState>((set) => ({
     set({
       view: "story",
       currentStoryId: storyId,
-      currentSection: "chapters",
+      currentSection: "document",
       currentChapterId: null,
     }),
   closeStory: () =>

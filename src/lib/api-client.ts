@@ -1,8 +1,18 @@
 // ========================================================
 // API CLIENT — Wrapper para chamadas fetch com tipagem
+// Intercepta 401 e despacha evento global para reset gracioso
 // ========================================================
 
 const BASE = "";
+
+export class ApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+    this.name = "ApiError";
+  }
+}
 
 async function request<T>(
   url: string,
@@ -16,9 +26,21 @@ async function request<T>(
     },
   });
 
+  // 401 = sessão inválida/expirada → despacha evento global
+  // O AuthProvider escuta e reseta para a tela de login
+  if (res.status === 401) {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("bloom:unauthorized"));
+    }
+    throw new ApiError("Sessão expirada", 401);
+  }
+
   if (!res.ok) {
     const errorBody = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(errorBody.error || `Erro ${res.status}`);
+    throw new ApiError(
+      errorBody.error || `Erro ${res.status}`,
+      res.status
+    );
   }
 
   if (res.status === 204) return undefined as T;
@@ -59,7 +81,7 @@ export const api = {
     }),
 
   // Chapters
-  createChapter: (storyId: string, data: { number: number; title?: string }) =>
+  createChapter: (storyId: string, data: { number?: number; title?: string }) =>
     request<unknown>(`/api/stories/${storyId}/chapters`, {
       method: "POST",
       body: JSON.stringify(data),

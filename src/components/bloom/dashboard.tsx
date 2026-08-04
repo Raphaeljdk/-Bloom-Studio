@@ -6,6 +6,7 @@ import {
   Plus, Search, Flower2, BookOpen, Users, Clock,
   Sparkles, Trash2, Calendar, LogOut, Filter
 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useStories } from "@/hooks/use-stories";
 import { useUIStore } from "@/stores/ui-store";
 import { useStoryStore } from "@/stores/story-store";
@@ -30,6 +31,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
 
 export function Dashboard() {
   const { stories, isLoading, create, isCreating, remove } = useStories();
+  const queryClient = useQueryClient();
   const openStory = useUIStore((s) => s.openStory);
   const searchQuery = useUIStore((s) => s.searchQuery);
   const setSearchQuery = useUIStore((s) => s.setSearchQuery);
@@ -59,8 +61,8 @@ export function Dashboard() {
       if (!res.ok) throw new Error("Falha no seed");
       const data = await res.json();
       toast.success(`História de exemplo criada: "${data.storyTitle}" 🌸`);
-      // Recarrega histórias via invalidação
-      window.location.reload();
+      // Invalida cache para recarregar sem reload completo
+      queryClient.invalidateQueries({ queryKey: ["stories"] });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao criar seed");
     }

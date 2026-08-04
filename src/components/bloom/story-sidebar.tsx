@@ -1,6 +1,6 @@
 "use client";
 
-import { Users, BookOpen, Clock, Sparkles, StickyNote, Flower2 } from "lucide-react";
+import { FileText, Users, BookOpen, Clock, Sparkles, StickyNote, Flower2 } from "lucide-react";
 import type { StorySection } from "@/stores/ui-store";
 import { useStoryStore } from "@/stores/story-store";
 
@@ -12,7 +12,8 @@ interface Props {
 
 export function StorySidebar({ collapsed, currentSection, onSection }: Props) {
   const data = useStoryStore((s) => s.currentStory);
-  const counts: Record<StorySection, number> = {
+  const counts: Record<StorySection, number | string> = {
+    document: "",
     characters: data?.characters.length || 0,
     chapters: data?.chapters.length || 0,
     timeline: data?.timeline.length || 0,
@@ -21,6 +22,7 @@ export function StorySidebar({ collapsed, currentSection, onSection }: Props) {
   };
 
   const items: Array<{ key: StorySection; label: string; icon: typeof Users }> = [
+    { key: "document", label: "Documento", icon: FileText },
     { key: "characters", label: "Personagens", icon: Users },
     { key: "chapters", label: "Capítulos", icon: BookOpen },
     { key: "timeline", label: "Cronologia", icon: Clock },
@@ -33,6 +35,7 @@ export function StorySidebar({ collapsed, currentSection, onSection }: Props) {
       {items.map((item) => {
         const active = currentSection === item.key;
         const Icon = item.icon;
+        const count = counts[item.key];
         return (
           <button
             key={item.key}
@@ -48,13 +51,15 @@ export function StorySidebar({ collapsed, currentSection, onSection }: Props) {
             {!collapsed && (
               <>
                 <span className="flex-1 text-left">{item.label}</span>
-                <span
-                  className={`text-xs px-1.5 py-0.5 rounded-full ${
-                    active ? "bg-[#FADADD] text-[#B24C63]" : "bg-white/20 text-white"
-                  }`}
-                >
-                  {counts[item.key]}
-                </span>
+                {count !== "" && (
+                  <span
+                    className={`text-xs px-1.5 py-0.5 rounded-full ${
+                      active ? "bg-[#FADADD] text-[#B24C63]" : "bg-white/20 text-white"
+                    }`}
+                  >
+                    {count}
+                  </span>
+                )}
               </>
             )}
           </button>
@@ -73,7 +78,7 @@ export function StorySidebar({ collapsed, currentSection, onSection }: Props) {
               <span className="font-medium">Flora</span>
             </div>
             <p className="text-xs text-white/70">
-              Converse com sua coautora no painel à direita.
+              Auxilia com ideias, perguntas e sugestões. Você escreve — ela ajuda a pensar.
             </p>
           </div>
         </div>

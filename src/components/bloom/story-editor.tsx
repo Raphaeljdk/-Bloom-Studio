@@ -10,6 +10,7 @@ import { useUIStore, type StorySection } from "@/stores/ui-store";
 import { useStoryDetail } from "@/hooks/use-stories";
 import { useStoryStore } from "@/stores/story-store";
 import { StorySidebar } from "./story-sidebar";
+import { DocumentPanel } from "./panels/document-panel";
 import { CharactersPanel } from "./panels/characters-panel";
 import { ChaptersPanel } from "./panels/chapters-panel";
 import { TimelinePanel } from "./panels/timeline-panel";
@@ -31,6 +32,7 @@ interface StoryMeta {
 }
 
 const SECTION_INFO: Record<StorySection, { label: string; icon: typeof Users; description: string }> = {
+  document: { label: "Documento", icon: FileText, description: "Visão organizada de toda a história" },
   characters: { label: "Personagens", icon: Users, description: "Quem habita sua história" },
   chapters: { label: "Capítulos", icon: BookOpen, description: "A estrutura narrativa" },
   timeline: { label: "Cronologia", icon: Clock, description: "A ordem dos acontecimentos" },
@@ -187,6 +189,7 @@ export function StoryEditor() {
             </div>
           </div>
           <div className="flex-1 overflow-y-auto">
+            {currentSection === "document" && <DocumentPanel storyId={storyId} />}
             {currentSection === "characters" && <CharactersPanel storyId={storyId} />}
             {currentSection === "chapters" && <ChaptersPanel storyId={storyId} />}
             {currentSection === "timeline" && <TimelinePanel storyId={storyId} />}
