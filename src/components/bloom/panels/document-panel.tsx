@@ -53,6 +53,28 @@ export function DocumentPanel({ storyId }: Props) {
     };
   }, [story, data]);
 
+  // Estatísticas do documento
+  const stats = useMemo(() => {
+    if (!doc) return null;
+    const totalWords = doc.chapters.reduce((sum, c) => {
+      const words = (c.content || "").split(/\s+/).filter(Boolean).length;
+      return sum + words;
+    }, 0);
+    const totalChapters = doc.chapters.length;
+    const completedChapters = doc.chapters.filter((c) => c.status === "COMPLETED").length;
+    const writingChapters = doc.chapters.filter((c) => c.status === "WRITING").length;
+    return {
+      totalWords,
+      totalChapters,
+      completedChapters,
+      writingChapters,
+      characters: doc.characters.length,
+      timeline: doc.timeline.length,
+      events: doc.events.length,
+      annotations: doc.annotations.length,
+    };
+  }, [doc]);
+
   const handlePrint = () => {
     if (!doc) return;
     const html = generatePrintHTML(doc);
@@ -97,7 +119,7 @@ export function DocumentPanel({ storyId }: Props) {
   return (
     <div className="p-6 max-w-4xl mx-auto">
       {/* Toolbar */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <p className="text-sm flora-text-secondary flex items-center gap-1.5">
           <FileText className="w-4 h-4" />
           Documento organizado da história
@@ -122,6 +144,36 @@ export function DocumentPanel({ storyId }: Props) {
           </Button>
         </div>
       </div>
+
+      {/* Stats banner */}
+      {stats && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+          <StatCard
+            label="Palavras"
+            value={stats.totalWords.toLocaleString("pt-BR")}
+            sub="no total"
+            color="rose"
+          />
+          <StatCard
+            label="Capítulos"
+            value={String(stats.totalChapters)}
+            sub={`${stats.completedChapters} concluído${stats.completedChapters === 1 ? "" : "s"} · ${stats.writingChapters} escrevendo`}
+            color="sage"
+          />
+          <StatCard
+            label="Personagens"
+            value={String(stats.characters)}
+            sub="criados"
+            color="gold"
+          />
+          <StatCard
+            label="Acontecimentos"
+            value={String(stats.events)}
+            sub="aprovados"
+            color="rose"
+          />
+        </div>
+      )}
 
       {/* Document */}
       <article className="bg-white rounded-2xl flora-shadow-soft flora-border border p-8 md:p-12" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>
@@ -358,6 +410,32 @@ function Section({
 
 function Empty({ text }: { text: string }) {
   return <p className="text-sm flora-text-secondary italic">{text}</p>;
+}
+
+function StatCard({
+  label,
+  value,
+  sub,
+  color,
+}: {
+  label: string;
+  value: string;
+  sub: string;
+  color: "rose" | "sage" | "gold";
+}) {
+  const colors = {
+    rose: { bg: "bg-[#FADADD]", text: "text-[#B24C63]", accent: "text-[#8B6B7A]" },
+    sage: { bg: "bg-[#D4E8DC]", text: "text-[#5A8870]", accent: "text-[#6B8A7A]" },
+    gold: { bg: "bg-[#F4E4BC]", text: "text-[#8B6B3A]", accent: "text-[#8B7A4A]" },
+  };
+  const c = colors[color];
+  return (
+    <div className={`${c.bg} rounded-2xl p-4 flora-border border`}>
+      <p className="text-xs uppercase tracking-wider font-medium text-[#8B6B7A] mb-1">{label}</p>
+      <p className={`text-2xl font-bold ${c.text}`}>{value}</p>
+      <p className={`text-xs ${c.accent} mt-0.5`}>{sub}</p>
+    </div>
+  );
 }
 
 /**
