@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import ZAI from "z-ai-web-dev-sdk";
+import { createAIClient } from "@/lib/ai-client";
 import { promises as fs } from "fs";
 import path from "path";
 
@@ -71,7 +71,7 @@ export async function POST(
   const prompt = promptParts.join(", ");
 
   try {
-    const zai = await ZAI.create();
+    const zai = await createAIClient();
     const response = await zai.images.generations.create({
       prompt,
       size: "768x1344", // portrait — formato de capa de livro

@@ -9,7 +9,7 @@ import { loadStoryContext, serializeContext } from "./context-builder";
 import { buildSystemPrompt } from "./prompt-templates";
 import { processResponse } from "./suggestion-guard";
 import { parseActions, executeAction, type ParsedAction } from "./action-parser";
-import ZAI from "z-ai-web-dev-sdk";
+import { aiChatCompletion } from "@/lib/ai-client";
 
 /**
  * Garante que exista uma ChatSession ativa para a história.
@@ -70,20 +70,22 @@ export async function sendToFlora(params: {
     { role: "user" as const, content: userMessage },
   ];
 
-  // 6. Chama a IA via z-ai-web-dev-sdk
-  const zai = await ZAI.create();
-  const completion = await zai.chat.completions.create({
-    messages: [
-      { role: "system", content: systemPrompt },
-      ...conversationMessages,
-    ],
-    temperature: 0.8,
-    max_tokens: 700,
-  });
+  // 6. Chama a IA via cliente unificado (z-ai SDK com fallback para fetch)
+  const allMessages = [
+    { role: "system", content: systemPrompt },
+    ...conversationMessages,
+  ];
 
-  const rawResponse: string =
-    completion.choices?.[0]?.message?.content ??
-    "🌸 Desculpe, não consegui formular uma resposta agora. Pode repetir?";
+  let rawResponse: string;
+  try {
+    rawResponse = await aiChatCompletion(allMessages, {
+      temperature: 0.8,
+      max_tokens: 800,
+    });
+  } catch (err) {
+    console.error("[coauthor] erro ao chamar IA:", err);
+    rawResponse = "🌸 No momento estou com dificuldade de conexão. Tente novamente em alguns instantes. Se persistir, verifique as configurações de API no painel.";
+  }
 
   // 7. Suggestion Guard analisa a resposta
   const guardResult = await processResponse(rawResponse, storyId);
