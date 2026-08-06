@@ -619,3 +619,44 @@
 .flora-pulse-dot {
   animation: flora-pulse-dot 1.5s ease-in-out infinite;
 }
+
+/* ========================================================
+   FORMATTED MESSAGE — renderização de markdown no chat
+   ======================================================== */
+.formatted-message {
+  line-height: 1.6;
+}
+.formatted-message p {
+  margin: 0;
+}
+.formatted-message p + p {
+  margin-top: 0.5rem;
+}
+.formatted-message ol,
+.formatted-message ul {
+  margin: 0.5rem 0;
+  padding-left: 0.25rem;
+}
+.formatted-message li {
+  margin: 0.25rem 0;
+}
+.formatted-message strong {
+  font-weight: 600;
+  color: #4A2C3A;
+}
+.formatted-message em {
+  font-style: italic;
+}
+.formatted-message h2,
+.formatted-message h3 {
+  margin: 0.75rem 0 0.5rem;
+  line-height: 1.3;
+}
+.formatted-message hr {
+  border: 0;
+  border-top: 1px solid #E6C2C7;
+  margin: 0.75rem 0;
+}
+.formatted-message code {
+  font-family: 'Courier New', monospace;
+}

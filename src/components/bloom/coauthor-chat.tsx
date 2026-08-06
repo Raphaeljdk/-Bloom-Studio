@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Send, Sparkles, Check, X, Flower2, RefreshCw } from "lucide-react";
 import { useChat } from "@/hooks/use-chat";
 import { VoiceInput } from "./voice-input";
+import { FormattedMessage } from "./formatted-message";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
@@ -59,10 +60,10 @@ export function CoauthorChat({ storyId }: Props) {
   };
 
   const suggestions = [
-    "Que perguntas devo fazer sobre meu protagonista?",
-    "Há alguma inconsistência na cronologia?",
+    "Me dê ideias de histórias",
+    "Quais perguntas devo fazer sobre meu protagonista?",
     "Pode sugerir um acontecimento importante?",
-    "Me ajude a pensar no próximo capítulo.",
+    "Analise a estrutura da minha história",
   ];
 
   return (
@@ -126,13 +127,17 @@ export function CoauthorChat({ storyId }: Props) {
                       </span>
                     )}
                     <div
-                      className={`rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap break-words ${
+                      className={`rounded-2xl px-4 py-2.5 text-sm break-words ${
                         m.role === "USER"
-                          ? "bg-[#D4818B] text-white rounded-br-md"
+                          ? "bg-[#D4818B] text-white rounded-br-md whitespace-pre-wrap"
                           : "bg-[#FADADD] flora-text-primary rounded-bl-md flora-border border"
                       }`}
                     >
-                      {m.content}
+                      {m.role === "ASSISTANT" ? (
+                        <FormattedMessage content={m.content} />
+                      ) : (
+                        m.content
+                      )}
                     </div>
 
                     {/* Card de sugestão pendente */}

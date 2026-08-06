@@ -149,10 +149,15 @@ export function Dashboard() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-6 sm:mb-8"
         >
-          <h2 className="text-2xl sm:text-4xl font-bold flora-text-primary mb-2">
-            Suas histórias 🌸
+          <div className="flex items-center gap-3 mb-3">
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#C48D9E] to-transparent" />
+            <span className="text-2xl">🌸</span>
+            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#C48D9E] to-transparent" />
+          </div>
+          <h2 className="text-3xl sm:text-5xl font-serif font-bold flora-text-gradient mb-3 text-center">
+            Suas histórias
           </h2>
-          <p className="text-sm sm:text-base flora-text-secondary">
+          <p className="text-sm sm:text-base flora-text-secondary text-center max-w-2xl mx-auto">
             Cada jardim começa com uma semente. Escolha uma história para continuar ou plante uma nova.
           </p>
         </motion.div>
