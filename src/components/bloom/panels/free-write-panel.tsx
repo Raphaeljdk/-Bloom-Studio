@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { Pen, Sparkles, Clock, Trash2, Save } from "lucide-react";
+import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Pen, Sparkles, Clock, Trash2, Save, Wand2, Loader2 } from "lucide-react";
 import { useStoryStore } from "@/stores/story-store";
 import { useStoryDetail } from "@/hooks/use-stories";
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,7 @@ const STORAGE_KEY = "bloom-free-write";
 
 export function FreeWritePanel({ storyId }: Props) {
   const { data: story } = useStoryDetail(storyId);
+  const qc = useQueryClient();
   const key = `${STORAGE_KEY}-${storyId}`;
 
   // Lazy initial state — lê do localStorage uma vez
@@ -22,21 +24,19 @@ export function FreeWritePanel({ storyId }: Props) {
     return localStorage.getItem(key) || "";
   });
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [organizing, setOrganizing] = useState(false);
 
   // Auto-save com debounce de 3s
+  const saveTimer = useTimer(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem(key, content);
+      setLastSaved(new Date());
+    }
+  }, 3000);
+
   useEffect(() => {
-    if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => {
-      if (typeof window !== "undefined") {
-        localStorage.setItem(key, content);
-        setLastSaved(new Date());
-      }
-    }, 3000);
-    return () => {
-      if (saveTimer.current) clearTimeout(saveTimer.current);
-    };
-  }, [content, key]);
+    saveTimer(content);
+  }, [content, saveTimer]);
 
   const words = content.split(/\s+/).filter(Boolean).length;
   const chars = content.length;
@@ -49,17 +49,54 @@ export function FreeWritePanel({ storyId }: Props) {
     toast.info("Escrita livre limpa");
   };
 
-  const handleSendToChapter = () => {
+  const handleCopyToChapter = () => {
     if (!content.trim()) {
-      toast.error("Nada para enviar");
+      toast.error("Nada para copiar");
       return;
     }
-    // Copia para o clipboard para o usuário colar no capítulo
     navigator.clipboard.writeText(content).then(() => {
       toast.success("Texto copiado! Cole no capítulo desejado 🌸");
     }).catch(() => {
       toast.error("Erro ao copiar");
     });
+  };
+
+  const organizeMutation = useMutation({
+    mutationFn: async (text: string) => {
+      const res = await fetch(`/api/stories/${storyId}/organize-free-write`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: text }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `Erro ${res.status}`);
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast.success(data.summary, { duration: 6000 });
+      // Invalida tudo para recarregar a sidebar com as novas entidades
+      qc.invalidateQueries({ queryKey: ["story", storyId] });
+      qc.invalidateQueries({ queryKey: ["stories"] });
+    },
+    onError: (e: Error) => {
+      toast.error(e.message || "Erro ao organizar escrita livre");
+    },
+    onSettled: () => setOrganizing(false),
+  });
+
+  const handleOrganize = () => {
+    if (!content.trim()) {
+      toast.error("Escreva algo primeiro");
+      return;
+    }
+    if (content.trim().length < 50) {
+      toast.error("Escreva pelo menos 50 caracteres para organizar");
+      return;
+    }
+    setOrganizing(true);
+    organizeMutation.mutate(content);
   };
 
   return (
@@ -70,12 +107,12 @@ export function FreeWritePanel({ storyId }: Props) {
           Escrita livre
         </h2>
         <p className="text-sm flora-text-secondary">
-          Espaço sem estrutura para brainstorm, cenas soltas, diálogos, ideias. Salvo automaticamente no seu navegador.
+          Espaço sem estrutura para brainstorm, cenas soltas, diálogos, ideias. Salvo automaticamente. Quando pronto, clique em <strong>Organizar na história</strong> e a Flora vai extrair personagens, capítulos, eventos e mais.
         </p>
       </div>
 
       {/* Stats bar */}
-      <div className="flex items-center gap-4 mb-3 text-xs">
+      <div className="flex items-center gap-4 mb-3 text-xs flex-wrap">
         <span className="flex items-center gap-1 flora-text-secondary">
           <Pen className="w-3.5 h-3.5" />
           <strong className="flora-text-primary">{words}</strong> palavras
@@ -109,8 +146,13 @@ export function FreeWritePanel({ storyId }: Props) {
 • Ideias para plot twists
 • Qualquer coisa — sem julgamento, sem estrutura
 
-A Flora pode ajudar se você pedir no chat →`}
-          className="w-full min-h-[60vh] bg-transparent border-0 focus:outline-none resize-none p-6 text-base leading-relaxed flora-text-primary font-serif"
+Quando terminar, clique em "Organizar na história" abaixo e a Flora vai separar tudo:
+- Personagens → painel Personagens
+- Cenas → painel Capítulos
+- Acontecimentos → painel Cronologia
+- Momentos cruciais → painel Acontecimentos
+- Ideias/perguntas → painel Anotações`}
+          className="w-full min-h-[50vh] bg-transparent border-0 focus:outline-none resize-none p-6 text-base leading-relaxed flora-text-primary font-serif"
           style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
         />
       </div>
@@ -119,18 +161,36 @@ A Flora pode ajudar se você pedir no chat →`}
       <div className="flex flex-wrap items-center justify-between gap-3 mt-4">
         <div className="flex items-center gap-2 text-xs flora-text-secondary">
           <Sparkles className="w-3.5 h-3.5" />
-          <span>Dica: peça à Flora "analise minha escrita livre" no chat</span>
+          <span>A Flora vai organizar seu texto automaticamente</span>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button
-            onClick={handleSendToChapter}
+            onClick={handleOrganize}
+            disabled={organizing || !content.trim() || content.trim().length < 50}
+            className="flora-gradient-accent text-white"
+            size="sm"
+          >
+            {organizing ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
+                Organizando...
+              </>
+            ) : (
+              <>
+                <Wand2 className="w-3.5 h-3.5 mr-1" />
+                Organizar na história
+              </>
+            )}
+          </Button>
+          <Button
+            onClick={handleCopyToChapter}
             variant="outline"
             size="sm"
             className="border-[#C48D9E] text-[#B24C63] hover:bg-[#FADADD]"
             disabled={!content.trim()}
           >
             <Sparkles className="w-3.5 h-3.5 mr-1" />
-            Copiar para capítulo
+            Copiar
           </Button>
           <Button
             onClick={handleClear}
@@ -144,6 +204,39 @@ A Flora pode ajudar se você pedir no chat →`}
           </Button>
         </div>
       </div>
+
+      {/* Info panel */}
+      <div className="mt-4 bg-[#FADADD] rounded-xl p-4 flora-border border">
+        <p className="text-xs flora-text-primary leading-relaxed">
+          <strong>🌸 Como funciona a organização:</strong> A Flora lê seu texto livre e identifica
+          personagens, cenas que viram capítulos, eventos cronológicos, momentos importantes e anotações.
+          Tudo é adicionado automaticamente nos painéis da sidebar — você só precisa revisar e editar.
+        </p>
+      </div>
     </div>
   );
+}
+
+// Hook customizado para timer com cleanup
+import { useEffect, useRef, useCallback } from "react";
+function useTimer(callback: () => void, delay: number) {
+  const savedCallback = useRef(callback);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    savedCallback.current = callback;
+  }, [callback]);
+
+  const trigger = useCallback((..._args: unknown[]) => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => savedCallback.current(), delay);
+  }, [delay]);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  return trigger;
 }

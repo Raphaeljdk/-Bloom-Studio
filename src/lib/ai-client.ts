@@ -1,6 +1,6 @@
 // ========================================================
 // AI CLIENT — Wrapper unificado para múltiplos provedores
-// Suporta: z-ai-web-dev-sdk (dev) e Groq (produção/Vercel)
+// Suporta: Groq (produção) e z-ai-web-dev-sdk (dev)
 // ========================================================
 
 import ZAI from "z-ai-web-dev-sdk";
@@ -14,9 +14,6 @@ const CONFIG_PATHS = [
   "/etc/.z-ai-config",
 ];
 
-/**
- * Verifica se o arquivo de config do z-ai já existe.
- */
 async function configExists(): Promise<boolean> {
   for (const p of CONFIG_PATHS) {
     try {
@@ -29,9 +26,6 @@ async function configExists(): Promise<boolean> {
   return false;
 }
 
-/**
- * Escreve o config do z-ai a partir de variáveis de ambiente.
- */
 async function ensureConfig(): Promise<void> {
   if (await configExists()) return;
 
@@ -41,7 +35,7 @@ async function ensureConfig(): Promise<void> {
   const userId = process.env.Z_AI_USER_ID || "";
   const token = process.env.Z_AI_TOKEN || "";
 
-  if (!baseUrl || !apiKey) return; // não pode escrever config sem dados
+  if (!baseUrl || !apiKey) return;
 
   const config: Record<string, string> = { baseUrl, apiKey };
   if (chatId) config.chatId = chatId;
@@ -64,62 +58,115 @@ async function ensureConfig(): Promise<void> {
   }
 }
 
-/**
- * Cria uma instância do ZAI client.
- */
 export async function createAIClient() {
   await ensureConfig();
   return ZAI.create();
 }
 
 // ========================================================
-// GROQ — OpenAI-compatible API (rápido e gratuito)
+// GROQ — OpenAI-compatible API com retry e rate limit
 // ========================================================
 
 const GROQ_MODELS = [
   "llama-3.3-70b-versatile",
-  "llama-3.1-70b-versatile",
+  "llama-3.1-70b-versable",
   "llama-3.1-8b-instant",
   "mixtral-8x7b-32768",
 ];
 
 /**
- * Chamada direta via Groq API (OpenAI-compatible).
- * Usa GROQ_API_KEY do ambiente.
+ * Sleep helper.
+ */
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Chamada direta via Groq API com retry automático.
+ * Trata rate limit (429) e erros 5xx com backoff exponencial.
  */
 export async function chatCompletionViaGroq(
   messages: Array<{ role: string; content: string }>,
-  options?: { temperature?: number; max_tokens?: number }
+  options?: { temperature?: number; max_tokens?: number; model?: string }
 ): Promise<string> {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
     throw new Error("GROQ_API_KEY não configurada");
   }
 
-  const model = process.env.GROQ_MODEL || GROQ_MODELS[0];
+  const model = options?.model || process.env.GROQ_MODEL || GROQ_MODELS[0];
   const url = "https://api.groq.com/openai/v1/chat/completions";
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model,
-      messages,
-      temperature: options?.temperature ?? 0.8,
-      max_tokens: options?.max_tokens ?? 800,
-    }),
-  });
+  const maxRetries = 3;
+  const baseDelay = 2000; // 2s
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Groq API error ${response.status}: ${errorText}`);
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model,
+          messages,
+          temperature: options?.temperature ?? 0.8,
+          max_tokens: options?.max_tokens ?? 800,
+        }),
+      });
+
+      if (response.status === 429) {
+        // Rate limit — espera e tenta novamente
+        const retryAfter = response.headers.get("retry-after");
+        const delay = retryAfter ? parseInt(retryAfter, 10) * 1000 : baseDelay * Math.pow(2, attempt);
+        console.warn(`[groq] Rate limit (429). Tentativa ${attempt + 1}/${maxRetries}. Aguardando ${delay}ms...`);
+        await sleep(delay);
+        continue;
+      }
+
+      if (response.status >= 500) {
+        // Erro do servidor — tenta novamente
+        console.warn(`[groq] Erro ${response.status}. Tentativa ${attempt + 1}/${maxRetries}...`);
+        await sleep(baseDelay * Math.pow(2, attempt));
+        continue;
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        // Erro 4xx (exceto 429) — não tenta novamente (erro de cliente)
+        if (response.status >= 400 && response.status < 500 && response.status !== 429) {
+          // Tenta modelo fallback se for erro de modelo
+          if (response.status === 404 || response.status === 400) {
+            const fallbackModel = GROQ_MODELS.find((m) => m !== model);
+            if (fallbackModel) {
+              console.warn(`[groq] Modelo ${model} falhou (${response.status}), tentando ${fallbackModel}...`);
+              return chatCompletionViaGroq(messages, { ...options, model: fallbackModel });
+            }
+          }
+          throw new Error(`Groq API error ${response.status}: ${errorText}`);
+        }
+        // Outros erros — tenta novamente
+        await sleep(baseDelay * Math.pow(2, attempt));
+        continue;
+      }
+
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content;
+      if (!content) throw new Error("Resposta vazia do Groq");
+      return content;
+    } catch (err) {
+      // Erro de rede — tenta novamente
+      if (attempt < maxRetries - 1) {
+        console.warn(`[groq] Erro de rede. Tentativa ${attempt + 1}/${maxRetries}:`, err instanceof Error ? err.message : err);
+        await sleep(baseDelay * Math.pow(2, attempt));
+        continue;
+      }
+      throw err;
+    }
   }
 
-  const data = await response.json();
-  return data.choices?.[0]?.message?.content || "";
+  throw new Error("Groq: máximo de tentativas excedido");
 }
 
 /**
@@ -142,8 +189,6 @@ async function chatCompletionViaZAI(
 
 /**
  * Função unificada: usa Groq se GROQ_API_KEY existir, senão z-ai SDK.
- * Na Vercel, GROQ_API_KEY deve estar configurada.
- * No sandbox, z-ai SDK funciona nativamente.
  */
 export async function aiChatCompletion(
   messages: Array<{ role: string; content: string }>,
