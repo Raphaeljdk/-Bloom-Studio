@@ -1,6 +1,6 @@
 // ========================================================
 // AI CLIENT — Wrapper unificado para múltiplos provedores
-// Suporta: Groq (produção) e z-ai-web-dev-sdk (dev)
+// Prioridade: Gemini (Google) > Groq > z-ai SDK (dev)
 // ========================================================
 
 import ZAI from "z-ai-web-dev-sdk";
@@ -64,43 +64,201 @@ export async function createAIClient() {
 }
 
 // ========================================================
-// GROQ — OpenAI-compatible API com retry e rate limit
+// GEMINI (Google AI) — Provedor principal
+// ========================================================
+
+const GEMINI_MODELS = [
+  "gemini-2.0-flash",
+  "gemini-2.0-flash-lite",
+  "gemini-1.5-flash",
+  "gemini-1.5-pro",
+];
+
+/**
+ * Mapeia mensagens OpenAI-style para o formato do Gemini.
+ * Gemini usa "user" e "model" (não "assistant").
+ * "system" vai para systemInstruction separadamente.
+ */
+function mapMessagesForGemini(
+  messages: Array<{ role: string; content: string }>
+): { systemInstruction?: string; contents: Array<{ role: string; parts: Array<{ text: string }> }> } {
+  let systemInstruction: string | undefined;
+  const contents: Array<{ role: string; parts: Array<{ text: string }> }> = [];
+
+  for (const msg of messages) {
+    if (msg.role === "system") {
+      // Acumula system messages
+      systemInstruction = systemInstruction
+        ? systemInstruction + "\n\n" + msg.content
+        : msg.content;
+    } else {
+      // Mapeia roles: assistant → model, user → user
+      const role = msg.role === "assistant" ? "model" : "user";
+      contents.push({ role, parts: [{ text: msg.content }] });
+    }
+  }
+
+  // Gemini requer alternância user/model. Se houver duas mensagens user seguidas, junta.
+  const merged: Array<{ role: string; parts: Array<{ text: string }> }> = [];
+  for (const c of contents) {
+    const last = merged[merged.length - 1];
+    if (last && last.role === c.role) {
+      last.parts[0].text += "\n\n" + c.parts[0].text;
+    } else {
+      merged.push({ ...c });
+    }
+  }
+
+  // Gemini precisa que comece com user
+  if (merged.length > 0 && merged[0].role !== "user") {
+    merged.unshift({ role: "user", parts: [{ text: "(continuação)" }] });
+  }
+
+  return {
+    systemInstruction: systemInstruction ? JSON.stringify({ parts: [{ text: systemInstruction }] }) : undefined,
+    contents: merged,
+  };
+}
+
+/**
+ * Chamada via Gemini API (Google AI).
+ * Usa GEMINI_API_KEY do ambiente.
+ */
+export async function chatCompletionViaGemini(
+  messages: Array<{ role: string; content: string }>,
+  options?: { temperature?: number; max_tokens?: number; model?: string }
+): Promise<string> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error("GEMINI_API_KEY não configurada");
+  }
+
+  const model = options?.model || process.env.GEMINI_MODEL || GEMINI_MODELS[0];
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+  const { systemInstruction, contents } = mapMessagesForGemini(messages);
+
+  const body: Record<string, unknown> = {
+    contents,
+    generationConfig: {
+      temperature: options?.temperature ?? 0.8,
+      maxOutputTokens: options?.max_tokens ?? 800,
+      topP: 0.95,
+    },
+    safetySettings: [
+      { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+      { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+      { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+      { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+    ],
+  };
+
+  if (systemInstruction) {
+    body.systemInstruction = JSON.parse(systemInstruction);
+  }
+
+  const maxRetries = 3;
+  const baseDelay = 1500;
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (response.status === 429) {
+        // Rate limit
+        const retryAfter = response.headers.get("retry-after");
+        const delay = retryAfter ? parseInt(retryAfter, 10) * 1000 : baseDelay * Math.pow(2, attempt);
+        console.warn(`[gemini] Rate limit (429). Tentativa ${attempt + 1}/${maxRetries}. Aguardando ${delay}ms...`);
+        await new Promise((r) => setTimeout(r, delay));
+        continue;
+      }
+
+      if (response.status === 404 || response.status === 400) {
+        // Modelo inválido — tenta fallback
+        const errorText = await response.text();
+        const fallbackModel = GEMINI_MODELS.find((m) => m !== model);
+        if (fallbackModel) {
+          console.warn(`[gemini] Modelo ${model} falhou (${response.status}), tentando ${fallbackModel}...`);
+          return chatCompletionViaGemini(messages, { ...options, model: fallbackModel });
+        }
+        throw new Error(`Gemini API error ${response.status}: ${errorText}`);
+      }
+
+      if (response.status >= 500) {
+        console.warn(`[gemini] Erro ${response.status}. Tentativa ${attempt + 1}/${maxRetries}...`);
+        await new Promise((r) => setTimeout(r, baseDelay * Math.pow(2, attempt)));
+        continue;
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Gemini API error ${response.status}: ${errorText}`);
+      }
+
+      const data = await response.json();
+
+      // Verifica se foi bloqueado por safety
+      if (data.promptFeedback?.blockReason) {
+        return "🌸 Não posso responder a esse conteúdo. Pode reformular?";
+      }
+
+      const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!content) {
+        // Pode ter sido bloqueado
+        const finishReason = data.candidates?.[0]?.finishReason;
+        if (finishReason === "SAFETY") {
+          return "🌸 Essa resposta foi filtrada por segurança. Pode tentar de outra forma?";
+        }
+        throw new Error("Resposta vazia do Gemini");
+      }
+
+      return content;
+    } catch (err) {
+      // Erro de rede — tenta novamente
+      if (attempt < maxRetries - 1) {
+        const isNetworkError = err instanceof TypeError || (err instanceof Error && err.message.includes("fetch"));
+        if (isNetworkError) {
+          console.warn(`[gemini] Erro de rede. Tentativa ${attempt + 1}/${maxRetries}:`, err instanceof Error ? err.message : err);
+          await new Promise((r) => setTimeout(r, baseDelay * Math.pow(2, attempt)));
+          continue;
+        }
+      }
+      throw err;
+    }
+  }
+
+  throw new Error("Gemini: máximo de tentativas excedido");
+}
+
+// ========================================================
+// GROQ — Fallback 1
 // ========================================================
 
 const GROQ_MODELS = [
   "llama-3.3-70b-versatile",
-  "llama-3.1-70b-versable",
+  "llama-3.1-70b-versatile",
   "llama-3.1-8b-instant",
-  "mixtral-8x7b-32768",
 ];
 
-/**
- * Sleep helper.
- */
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/**
- * Chamada direta via Groq API com retry automático.
- * Trata rate limit (429) e erros 5xx com backoff exponencial.
- */
 export async function chatCompletionViaGroq(
   messages: Array<{ role: string; content: string }>,
   options?: { temperature?: number; max_tokens?: number; model?: string }
 ): Promise<string> {
   const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) {
-    throw new Error("GROQ_API_KEY não configurada");
-  }
+  if (!apiKey) throw new Error("GROQ_API_KEY não configurada");
 
   const model = options?.model || process.env.GROQ_MODEL || GROQ_MODELS[0];
   const url = "https://api.groq.com/openai/v1/chat/completions";
 
-  const maxRetries = 3;
-  const baseDelay = 2000; // 2s
-
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
+  for (let attempt = 0; attempt < 3; attempt++) {
     try {
       const response = await fetch(url, {
         method: "POST",
@@ -117,61 +275,44 @@ export async function chatCompletionViaGroq(
       });
 
       if (response.status === 429) {
-        // Rate limit — espera e tenta novamente
-        const retryAfter = response.headers.get("retry-after");
-        const delay = retryAfter ? parseInt(retryAfter, 10) * 1000 : baseDelay * Math.pow(2, attempt);
-        console.warn(`[groq] Rate limit (429). Tentativa ${attempt + 1}/${maxRetries}. Aguardando ${delay}ms...`);
+        const delay = 2000 * Math.pow(2, attempt);
+        console.warn(`[groq] Rate limit. Tentativa ${attempt + 1}/3. Aguardando ${delay}ms...`);
         await sleep(delay);
         continue;
       }
 
       if (response.status >= 500) {
-        // Erro do servidor — tenta novamente
-        console.warn(`[groq] Erro ${response.status}. Tentativa ${attempt + 1}/${maxRetries}...`);
-        await sleep(baseDelay * Math.pow(2, attempt));
+        await sleep(2000 * Math.pow(2, attempt));
         continue;
+      }
+
+      if (response.status === 404 || response.status === 400) {
+        const fallback = GROQ_MODELS.find((m) => m !== model);
+        if (fallback) return chatCompletionViaGroq(messages, { ...options, model: fallback });
       }
 
       if (!response.ok) {
         const errorText = await response.text();
-        // Erro 4xx (exceto 429) — não tenta novamente (erro de cliente)
-        if (response.status >= 400 && response.status < 500 && response.status !== 429) {
-          // Tenta modelo fallback se for erro de modelo
-          if (response.status === 404 || response.status === 400) {
-            const fallbackModel = GROQ_MODELS.find((m) => m !== model);
-            if (fallbackModel) {
-              console.warn(`[groq] Modelo ${model} falhou (${response.status}), tentando ${fallbackModel}...`);
-              return chatCompletionViaGroq(messages, { ...options, model: fallbackModel });
-            }
-          }
-          throw new Error(`Groq API error ${response.status}: ${errorText}`);
-        }
-        // Outros erros — tenta novamente
-        await sleep(baseDelay * Math.pow(2, attempt));
-        continue;
+        throw new Error(`Groq API error ${response.status}: ${errorText}`);
       }
 
       const data = await response.json();
-      const content = data.choices?.[0]?.message?.content;
-      if (!content) throw new Error("Resposta vazia do Groq");
-      return content;
+      return data.choices?.[0]?.message?.content || "";
     } catch (err) {
-      // Erro de rede — tenta novamente
-      if (attempt < maxRetries - 1) {
-        console.warn(`[groq] Erro de rede. Tentativa ${attempt + 1}/${maxRetries}:`, err instanceof Error ? err.message : err);
-        await sleep(baseDelay * Math.pow(2, attempt));
+      if (attempt < 2) {
+        await sleep(2000 * Math.pow(2, attempt));
         continue;
       }
       throw err;
     }
   }
-
   throw new Error("Groq: máximo de tentativas excedido");
 }
 
-/**
- * Chamada via z-ai SDK (sandbox/dev).
- */
+// ========================================================
+// z-ai SDK (sandbox/dev)
+// ========================================================
+
 async function chatCompletionViaZAI(
   messages: Array<{ role: string; content: string }>,
   options?: { temperature?: number; max_tokens?: number }
@@ -187,28 +328,45 @@ async function chatCompletionViaZAI(
   return content;
 }
 
-/**
- * Função unificada: usa Groq se GROQ_API_KEY existir, senão z-ai SDK.
- */
+// ========================================================
+// FUNÇÃO UNIFICADA — Prioridade: Gemini > Groq > z-ai
+// ========================================================
+
 export async function aiChatCompletion(
   messages: Array<{ role: string; content: string }>,
   options?: { temperature?: number; max_tokens?: number }
 ): Promise<string> {
-  // Prioridade 1: Groq (se configurado)
+  const errors: string[] = [];
+
+  // 1. Gemini (prioridade principal)
+  if (process.env.GEMINI_API_KEY) {
+    try {
+      return await chatCompletionViaGemini(messages, options);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      errors.push(`Gemini: ${msg}`);
+      console.warn("[ai-client] Gemini falhou:", msg);
+    }
+  }
+
+  // 2. Groq (fallback 1)
   if (process.env.GROQ_API_KEY) {
     try {
       return await chatCompletionViaGroq(messages, options);
     } catch (err) {
-      console.warn("[ai-client] Groq falhou:", err instanceof Error ? err.message : err);
-      // cai para z-ai
+      const msg = err instanceof Error ? err.message : String(err);
+      errors.push(`Groq: ${msg}`);
+      console.warn("[ai-client] Groq falhou:", msg);
     }
   }
 
-  // Prioridade 2: z-ai SDK (sandbox/dev)
+  // 3. z-ai SDK (sandbox/dev)
   try {
     return await chatCompletionViaZAI(messages, options);
   } catch (err) {
-    console.warn("[ai-client] z-ai SDK falhou:", err instanceof Error ? err.message : err);
-    throw err;
+    const msg = err instanceof Error ? err.message : String(err);
+    errors.push(`z-ai: ${msg}`);
   }
+
+  throw new Error(`Todos os provedores falharam: ${errors.join(" | ")}`);
 }
