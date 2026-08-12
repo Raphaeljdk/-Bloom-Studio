@@ -275,14 +275,14 @@ export async function chatCompletionViaGroq(
       });
 
       if (response.status === 429) {
-        const delay = 2000 * Math.pow(2, attempt);
+        const delay = 1000 * Math.pow(2, attempt);
         console.warn(`[groq] Rate limit. Tentativa ${attempt + 1}/3. Aguardando ${delay}ms...`);
         await sleep(delay);
         continue;
       }
 
       if (response.status >= 500) {
-        await sleep(2000 * Math.pow(2, attempt));
+        await sleep(1000 * Math.pow(2, attempt));
         continue;
       }
 

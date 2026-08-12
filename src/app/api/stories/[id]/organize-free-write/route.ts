@@ -3,6 +3,9 @@ import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { aiChatCompletion } from "@/lib/ai-client";
 
+export const maxDuration = 60;
+export const dynamic = "force-dynamic";
+
 /**
  * POST /api/stories/[id]/organize-free-write
  * Recebe o texto da escrita livre, usa IA para extrair entidades

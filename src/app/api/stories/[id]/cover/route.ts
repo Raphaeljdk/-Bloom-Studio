@@ -5,6 +5,9 @@ import { createAIClient } from "@/lib/ai-client";
 import { promises as fs } from "fs";
 import path from "path";
 
+export const maxDuration = 60;
+export const dynamic = "force-dynamic";
+
 const COVER_STYLES: Record<string, { label: string; promptSuffix: string }> = {
   watercolor: {
     label: "Aquarela",

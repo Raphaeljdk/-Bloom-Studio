@@ -3,6 +3,10 @@ import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { sendToFlora } from "@/lib/coauthor/coauthor.service";
 
+// Vercel: permite até 60s para a função serverless (plano Hobby padrão é 10s)
+export const maxDuration = 60;
+export const dynamic = "force-dynamic";
+
 /**
  * GET /api/stories/[id]/chat
  * Retorna histórico completo de mensagens + sugestões vinculadas.
