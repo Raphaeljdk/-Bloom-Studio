@@ -157,8 +157,8 @@ export async function chatCompletionViaGemini(
     body.systemInstruction = JSON.parse(systemInstruction);
   }
 
-  const maxRetries = 3;
-  const baseDelay = 1500;
+  const maxRetries = 2;
+  const baseDelay = 1000;
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
@@ -169,7 +169,17 @@ export async function chatCompletionViaGemini(
       });
 
       if (response.status === 429) {
-        // Rate limit
+        // Rate limit — verifica se é quota esgotada (limit: 0)
+        const errorBody = await response.text();
+        const isQuotaExhausted = errorBody.includes("limit: 0") || errorBody.includes("RESOURCE_EXHAUSTED");
+
+        if (isQuotaExhausted) {
+          // Quota zerada — não adianta tentar de novo, falha imediatamente
+          console.warn("[gemini] Quota esgotada (limit: 0). Pulando para próximo provedor...");
+          throw new Error("Gemini quota exhausted (limit: 0)");
+        }
+
+        // Rate limit temporário — tenta novamente com backoff
         const retryAfter = response.headers.get("retry-after");
         const delay = retryAfter ? parseInt(retryAfter, 10) * 1000 : baseDelay * Math.pow(2, attempt);
         console.warn(`[gemini] Rate limit (429). Tentativa ${attempt + 1}/${maxRetries}. Aguardando ${delay}ms...`);

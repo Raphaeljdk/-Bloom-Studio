@@ -80,7 +80,7 @@ export async function sendToFlora(params: {
   try {
     rawResponse = await aiChatCompletion(allMessages, {
       temperature: 0.8,
-      max_tokens: 800,
+      max_tokens: 600,
     });
   } catch (err) {
     console.error("[coauthor] erro ao chamar IA:", err);
