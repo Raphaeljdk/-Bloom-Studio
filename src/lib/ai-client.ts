@@ -162,11 +162,18 @@ export async function chatCompletionViaGemini(
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
+      // Timeout de 10s — Gemini com quota esgotada deve falhar rápido
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
       const response = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (response.status === 429) {
         // Rate limit — verifica se é quota esgotada (limit: 0)
@@ -268,8 +275,12 @@ export async function chatCompletionViaGroq(
   const model = options?.model || process.env.GROQ_MODEL || GROQ_MODELS[0];
   const url = "https://api.groq.com/openai/v1/chat/completions";
 
-  for (let attempt = 0; attempt < 3; attempt++) {
+  for (let attempt = 0; attempt < 2; attempt++) {
     try {
+      // Timeout de 15s por tentativa — evita travar a função serverless
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+
       const response = await fetch(url, {
         method: "POST",
         headers: {
@@ -280,9 +291,12 @@ export async function chatCompletionViaGroq(
           model,
           messages,
           temperature: options?.temperature ?? 0.8,
-          max_tokens: options?.max_tokens ?? 800,
+          max_tokens: options?.max_tokens ?? 600,
         }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (response.status === 429) {
         const delay = 1000 * Math.pow(2, attempt);
