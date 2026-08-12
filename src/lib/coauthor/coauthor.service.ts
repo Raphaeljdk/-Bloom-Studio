@@ -84,7 +84,17 @@ export async function sendToFlora(params: {
     });
   } catch (err) {
     console.error("[coauthor] erro ao chamar IA:", err);
-    rawResponse = "🌸 No momento estou com dificuldade de conexão. Tente novamente em alguns instantes. Se persistir, verifique as configurações de API no painel.";
+    rawResponse = `🌸 Olá! Estou tendo dificuldades técnicas para responder agora.
+
+Isso pode acontecer por:
+- **Limite de requisições** excedido no provedor de IA
+- **Chave de API** inválida ou expirada
+
+**O que você pode fazer:**
+1. Aguarde alguns minutos e tente novamente
+2. Se persistir, contate o administrador para verificar as chaves de API
+
+Sua mensagem foi salva e quando eu voltar a funcionar, posso continuar a conversa. 🌷`;
   }
 
   // 7. Suggestion Guard analisa a resposta

@@ -362,10 +362,19 @@ export async function aiChatCompletion(
 ): Promise<string> {
   const errors: string[] = [];
 
-  // 1. Gemini (prioridade principal)
-  if (process.env.GEMINI_API_KEY) {
+  // Timeout total de 20s para todos os provedores combinados
+  const totalTimeout = 20000;
+  const startTime = Date.now();
+
+  // 1. Gemini (prioridade principal) — só tenta se ainda tem tempo
+  if (process.env.GEMINI_API_KEY && Date.now() - startTime < totalTimeout) {
     try {
-      return await chatCompletionViaGemini(messages, options);
+      return await Promise.race([
+        chatCompletionViaGemini(messages, options),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Gemini timeout")), 8000)
+        ),
+      ]);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       errors.push(`Gemini: ${msg}`);
@@ -374,9 +383,14 @@ export async function aiChatCompletion(
   }
 
   // 2. Groq (fallback 1)
-  if (process.env.GROQ_API_KEY) {
+  if (process.env.GROQ_API_KEY && Date.now() - startTime < totalTimeout) {
     try {
-      return await chatCompletionViaGroq(messages, options);
+      return await Promise.race([
+        chatCompletionViaGroq(messages, options),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Groq timeout")), 12000)
+        ),
+      ]);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       errors.push(`Groq: ${msg}`);
@@ -385,11 +399,13 @@ export async function aiChatCompletion(
   }
 
   // 3. z-ai SDK (sandbox/dev)
-  try {
-    return await chatCompletionViaZAI(messages, options);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    errors.push(`z-ai: ${msg}`);
+  if (Date.now() - startTime < totalTimeout) {
+    try {
+      return await chatCompletionViaZAI(messages, options);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      errors.push(`z-ai: ${msg}`);
+    }
   }
 
   throw new Error(`Todos os provedores falharam: ${errors.join(" | ")}`);
