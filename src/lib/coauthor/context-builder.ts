@@ -132,6 +132,13 @@ export function serializeContext(ctx: StoryContext): string {
     ctx.chapters.forEach((ch) => {
       lines.push(`Cap. ${ch.number}${ch.title ? ` — ${ch.title}` : ""} [${ch.status}]`);
       if (ch.summary) lines.push(`   Resumo: ${ch.summary}`);
+      // Inclui o conteúdo completo do capítulo (até 2000 chars) para a Flora poder ler e continuar
+      if (ch.content) {
+        const contentPreview = ch.content.length > 2000
+          ? ch.content.slice(0, 2000) + "... [truncado]"
+          : ch.content;
+        lines.push(`   Conteúdo: ${contentPreview}`);
+      }
     });
   }
   lines.push("");

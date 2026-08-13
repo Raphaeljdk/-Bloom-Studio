@@ -204,36 +204,37 @@ export function Dashboard() {
                 {/* Templates rápidos */}
                 <div className="space-y-2">
                   <Label className="flora-text-primary text-xs uppercase tracking-wider">Templates (opcional)</Label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                     {[
-                      { key: "blank", label: "Em branco", emoji: "📄", desc: "Comece do zero" },
+                      { key: "blank", label: "Em branco", emoji: "📄", desc: "Do zero" },
                       { key: "romance", label: "Romance", emoji: "💕", desc: "3 atos" },
-                      { key: "fantasy", label: "Fantasia", emoji: "🐉", desc: "Jornada do herói" },
-                      { key: "mystery", label: "Suspense", emoji: "🔍", desc: "Pistas e twist" },
+                      { key: "fantasy", label: "Fantasia", emoji: "🐉", desc: "Jornada" },
+                      { key: "mystery", label: "Suspense", emoji: "🔍", desc: "Twist" },
+                      { key: "scifi", label: "Ficção Científica", emoji: "🚀", desc: "Futuro" },
+                      { key: "horror", label: "Terror", emoji: "👻", desc: "Medo" },
+                      { key: "adventure", label: "Aventura", emoji: "🗺️", desc: "Exploração" },
+                      { key: "drama", label: "Drama", emoji: "🎭", desc: "Emocional" },
+                      { key: "historical", label: "Histórico", emoji: "📜", desc: "Época" },
                     ].map((t) => (
                       <button
                         key={t.key}
                         onClick={() => {
-                          if (t.key === "blank") return;
-                          const templates: Record<string, { title: string; desc: string; genre: string; tone: string }> = {
-                            romance: {
-                              title: "",
-                              desc: "Uma história de amor em três atos: encontro, conflito, resolução.",
-                              genre: "Romance",
-                              tone: "Emocional, intimista",
-                            },
-                            fantasy: {
-                              title: "",
-                              desc: "Uma jornada épica com sistema mágico, mentor e provações.",
-                              genre: "Fantasia",
-                              tone: "Épico, aventura",
-                            },
-                            mystery: {
-                              title: "",
-                              desc: "Um mistério com pistas, red herrings e reviravolta final.",
-                              genre: "Suspense",
-                              tone: "Tenso, investigativo",
-                            },
+                          if (t.key === "blank") {
+                            setNewTitle("");
+                            setNewDesc("");
+                            setNewGenre("");
+                            setNewTone("");
+                            return;
+                          }
+                          const templates: Record<string, { desc: string; genre: string; tone: string }> = {
+                            romance: { desc: "Uma história de amor em três atos: encontro, conflito, resolução.", genre: "Romance", tone: "Emocional, intimista" },
+                            fantasy: { desc: "Uma jornada épica com sistema mágico, mentor e provações.", genre: "Fantasia", tone: "Épico, aventura" },
+                            mystery: { desc: "Um mistério com pistas, red herrings e reviravolta final.", genre: "Suspense", tone: "Tenso, investigativo" },
+                            scifi: { desc: "Uma história futurística com tecnologia avançada e dilemas éticos.", genre: "Ficção científica", tone: "Reflexivo, tenso" },
+                            horror: { desc: "Uma história de terror com atmosfera opressiva e medo crescente.", genre: "Terror", tone: "Sombrio, angustiante" },
+                            adventure: { desc: "Uma aventura com exploração, descobertas e perigos.", genre: "Aventura", tone: "Empolgante, dinâmico" },
+                            drama: { desc: "Um drama focado em relacionamentos e conflitos internos.", genre: "Drama", tone: "Emocional, contemplativo" },
+                            historical: { desc: "Uma história ambientada em uma época específica com rico contexto histórico.", genre: "Histórico", tone: "Narrativo, imersivo" },
                           };
                           if (templates[t.key]) {
                             setNewDesc(templates[t.key].desc);
@@ -242,28 +243,25 @@ export function Dashboard() {
                             if (!newTitle.trim()) setNewTitle(".");
                           }
                         }}
-                        className="p-3 rounded-xl border border-[#E6C2C7] hover:bg-[#FADADD] hover:border-[#C48D9E] transition text-center"
+                        className="p-2.5 rounded-xl border border-[#E6C2C7] hover:bg-[#FADADD] hover:border-[#C48D9E] transition text-center"
                       >
-                        <div className="text-2xl mb-1">{t.emoji}</div>
-                        <p className="text-xs font-medium flora-text-primary">{t.label}</p>
-                        <p className="text-[10px] flora-text-secondary">{t.desc}</p>
+                        <div className="text-xl mb-0.5">{t.emoji}</div>
+                        <p className="text-[10px] font-medium flora-text-primary">{t.label}</p>
+                        <p className="text-[9px] flora-text-secondary">{t.desc}</p>
                       </button>
                     ))}
                   </div>
                 </div>
 
-                {/* Título com sugestão */}
+                {/* Título */}
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label className="flora-text-primary">Título</Label>
-                    <span className="text-xs flora-text-secondary italic">
-                      Não sabe? Coloque "." e peça sugestão à Flora depois
-                    </span>
-                  </div>
+                  <Label className="flora-text-primary text-xs">
+                    Título <span className="flora-text-secondary italic">(opcional — coloque "." se não souber)</span>
+                  </Label>
                   <Input
                     value={newTitle}
                     onChange={(e) => setNewTitle(e.target.value)}
-                    placeholder="Ex: O Jardim das Memórias Perdidas (ou apenas um .)"
+                    placeholder="Ex: O Jardim das Memórias... ou apenas ."
                     className="border-[#E6C2C7] focus:border-[#C48D9E] text-base"
                     maxLength={120}
                   />
@@ -271,26 +269,29 @@ export function Dashboard() {
 
                 {/* Descrição */}
                 <div className="space-y-2">
-                  <Label className="flora-text-primary">Sinopse / Ideia inicial</Label>
+                  <Label className="flora-text-primary text-xs">
+                    Sinopse / Ideia <span className="flora-text-secondary italic">(opcional)</span>
+                  </Label>
                   <Textarea
                     value={newDesc}
                     onChange={(e) => setNewDesc(e.target.value)}
-                    placeholder="Escreva livremente: pode ser uma sinopse, uma ideia solta, um personagem, uma cena, ou deixe em branco para descobrir no caminho..."
-                    rows={4}
+                    placeholder="Escreva livremente ou deixe em branco. O gênero e tom podem ser definidos depois com a ajuda da Flora."
+                    rows={3}
                     maxLength={1000}
                     className="border-[#E6C2C7] focus:border-[#C48D9E] resize-none"
                   />
-                  <p className="text-xs flora-text-secondary">{newDesc.length}/1000</p>
                 </div>
 
-                {/* Gênero + Tom + Status */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {/* Gênero + Tom */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-2">
-                    <Label className="flora-text-primary text-xs">Gênero</Label>
+                    <Label className="flora-text-primary text-xs">
+                      Gênero <span className="flora-text-secondary italic">(opcional — auto-detetado depois)</span>
+                    </Label>
                     <Input
                       value={newGenre}
                       onChange={(e) => setNewGenre(e.target.value)}
-                      placeholder="Realismo mágico"
+                      placeholder="Deixe em branco para auto-detectar"
                       list="genres-create"
                       className="border-[#E6C2C7] focus:border-[#C48D9E]"
                     />
@@ -307,14 +308,24 @@ export function Dashboard() {
                       <option value="Histórico" />
                       <option value="Distopia" />
                       <option value="Conto" />
+                      <option value="Cyberpunk" />
+                      <option value="Steampunk" />
+                      <option value="Young Adult" />
+                      <option value="Novela" />
+                      <option value="Crônica" />
+                      <option value="Poesia" />
+                      <option value="Biografia" />
+                      <option value="Autoajuda" />
                     </datalist>
                   </div>
                   <div className="space-y-2">
-                    <Label className="flora-text-primary text-xs">Tom</Label>
+                    <Label className="flora-text-primary text-xs">
+                      Tom <span className="flora-text-secondary italic">(opcional)</span>
+                    </Label>
                     <Input
                       value={newTone}
                       onChange={(e) => setNewTone(e.target.value)}
-                      placeholder="Melancólico"
+                      placeholder="Deixe em branco"
                       list="tones-create"
                       className="border-[#E6C2C7] focus:border-[#C48D9E]"
                     />
@@ -327,20 +338,14 @@ export function Dashboard() {
                       <option value="Tenso" />
                       <option value="Lírico" />
                       <option value="Cômico" />
+                      <option value="Épico" />
+                      <option value="Intimista" />
+                      <option value="Ironia" />
+                      <option value="Elegíaco" />
+                      <option value="Empolgante" />
+                      <option value="Reflexivo" />
+                      <option value="Onírico" />
                     </datalist>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="flora-text-primary text-xs">Status inicial</Label>
-                    <Select defaultValue="DRAFT">
-                      <SelectTrigger className="bg-white border-[#E6C2C7]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="DRAFT">Rascunho</SelectItem>
-                        <SelectItem value="IN_PROGRESS">Em progresso</SelectItem>
-                        <SelectItem value="ON_HOLD">Pausada</SelectItem>
-                      </SelectContent>
-                    </Select>
                   </div>
                 </div>
 
@@ -349,8 +354,11 @@ export function Dashboard() {
                     Cancelar
                   </Button>
                   <Button
-                    onClick={handleCreate}
-                    disabled={isCreating || !newTitle.trim()}
+                    onClick={() => {
+                      if (!newTitle.trim()) setNewTitle(".");
+                      handleCreate();
+                    }}
+                    disabled={isCreating}
                     className="flora-gradient-accent text-white"
                   >
                     {isCreating ? "Plantando..." : "🌱 Plantar história"}
