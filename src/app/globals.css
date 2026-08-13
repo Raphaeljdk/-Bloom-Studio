@@ -660,3 +660,279 @@
 .formatted-message code {
   font-family: 'Courier New', monospace;
 }
+
+/* ========================================================
+   BLOOM STUDIO — DESIGN SYSTEM NÍVEL SENIOR
+   Efeitos avançados mantendo o tema Jardim Romântico
+   ======================================================== */
+
+/* === ANIMAÇÕES AVANÇADAS === */
+@keyframes bloom-fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes bloom-scale-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes bloom-slide-in-right {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes bloom-pulse-glow {
+  0%, 100% { box-shadow: 0 0 5px rgba(178, 76, 99, 0.3); }
+  50% { box-shadow: 0 0 20px rgba(178, 76, 99, 0.5), 0 0 40px rgba(212, 129, 139, 0.2); }
+}
+
+@keyframes bloom-shimmer-text {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes bloom-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes bloom-ripple {
+  to { width: 300px; height: 300px; opacity: 0; }
+}
+
+@keyframes bloom-gradient-flow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* === CARDS DE HISTÓRIA — Efeito elevado com borda gradiente === */
+.story-card {
+  position: relative;
+  overflow: hidden;
+  transition: all 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.story-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #C48D9E, #B24C63, #D4818B);
+  opacity: 0;
+  transition: opacity 250ms ease;
+}
+
+.story-card:hover::before {
+  opacity: 1;
+}
+
+.story-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(212, 129, 139, 0.08), transparent 40%);
+  opacity: 0;
+  transition: opacity 300ms ease;
+  pointer-events: none;
+}
+
+.story-card:hover::after {
+  opacity: 1;
+}
+
+/* === BOTÕES COM EFEITO RIPLE === */
+.btn-bloom {
+  position: relative;
+  overflow: hidden;
+  transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-bloom:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(178, 76, 99, 0.3);
+}
+
+.btn-bloom:active {
+  transform: translateY(0);
+}
+
+.btn-bloom::after {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 0; height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.btn-bloom:active::after {
+  animation: bloom-ripple 0.6s ease-out;
+}
+
+/* === SIDEBAR ITEMS — hover com deslocamento === */
+.sidebar-item-bloom {
+  transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  border-left: 3px solid transparent;
+  position: relative;
+}
+
+.sidebar-item-bloom:hover {
+  transform: translateX(4px);
+}
+
+.sidebar-item-bloom.active {
+  position: relative;
+}
+
+.sidebar-item-bloom.active::after {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: linear-gradient(180deg, #D4818B, #B24C63);
+  border-radius: 0 3px 3px 0;
+}
+
+/* === MODAL COM BACKDROP BLUR === */
+.modal-bloom-overlay {
+  backdrop-filter: blur(8px) saturate(180%);
+  -webkit-backdrop-filter: blur(8px) saturate(180%);
+}
+
+.modal-bloom-content {
+  animation: bloom-scale-in 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* === MENSAGENS DE CHAT === */
+.chat-message-bloom {
+  animation: bloom-slide-in-right 250ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.chat-message-bloom.assistant {
+  background: linear-gradient(135deg, rgba(250, 218, 221, 0.6), rgba(230, 194, 199, 0.3));
+  border: 1px solid rgba(196, 141, 158, 0.3);
+  box-shadow: 0 2px 8px rgba(178, 76, 99, 0.08);
+}
+
+.chat-message-bloom.user {
+  background: linear-gradient(135deg, #D4818B, #B24C63);
+  box-shadow: 0 2px 8px rgba(178, 76, 99, 0.2);
+}
+
+/* === TYPING INDICATOR === */
+.typing-indicator-bloom {
+  display: flex;
+  gap: 4px;
+  padding: 8px 12px;
+}
+
+.typing-dot-bloom {
+  width: 8px;
+  height: 8px;
+  background: #B24C63;
+  border-radius: 50%;
+  animation: bloom-pulse-glow 1.5s infinite;
+}
+
+.typing-dot-bloom:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot-bloom:nth-child(3) { animation-delay: 0.4s; }
+
+/* === STATS COM GRADIENTE === */
+.stat-number-bloom {
+  font-size: 2rem;
+  font-weight: bold;
+  background: linear-gradient(135deg, #B24C63 0%, #D4818B 50%, #C48D9E 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* === LOADING SPINNER === */
+.loading-spinner-bloom {
+  width: 24px;
+  height: 24px;
+  border: 3px solid #E6C2C7;
+  border-top-color: #B24C63;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* === SCROLLBAR PERSONALIZADA === */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #FDF2F0;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #C48D9E, #B24C63);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #B24C63, #8B3550);
+}
+
+/* === GRADIENTE ANIMADO === */
+.bloom-gradient-animated {
+  background: linear-gradient(135deg, #FDF2F0, #FADADD, #E6C2C7, #FADADD, #FDF2F0);
+  background-size: 300% 300%;
+  animation: bloom-gradient-flow 12s ease infinite;
+}
+
+/* === GLOW EFFECT === */
+.bloom-glow {
+  animation: bloom-pulse-glow 3s ease-in-out infinite;
+}
+
+/* === SHIMMER LOADING === */
+.bloom-shimmer {
+  background: linear-gradient(90deg, #FADADD 25%, #E6C2C7 50%, #FADADD 75%);
+  background-size: 200% 100%;
+  animation: bloom-shimmer-text 1.5s ease-in-out infinite;
+}
+
+/* === FLOAT ANIMATION === */
+.bloom-float {
+  animation: bloom-float 4s ease-in-out infinite;
+}
+
+/* === ENTRANCE ANIMATIONS === */
+.bloom-fade-in { animation: bloom-fade-in 400ms ease-out; }
+.bloom-scale-in { animation: bloom-scale-in 500ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+.bloom-slide-in { animation: bloom-slide-in-right 300ms ease-out; }
+
+/* === GLASS CARD === */
+.bloom-glass-card {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 8px 32px rgba(178, 76, 99, 0.12);
+}
+
+/* === FOCUS GLOW === */
+.bloom-focus-glow:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(196, 141, 158, 0.4), 0 0 0 1px #B24C63;
+}
+
+/* === CARD HOVER LIFT === */
+.bloom-hover-lift {
+  transition: transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 300ms ease;
+}
+.bloom-hover-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(178, 76, 99, 0.15);
+}

@@ -6,6 +6,7 @@ import { Send, Sparkles, Check, X, Flower2, RefreshCw } from "lucide-react";
 import { useChat } from "@/hooks/use-chat";
 import { VoiceInput } from "./voice-input";
 import { FormattedMessage } from "./formatted-message";
+import { AddToDocumentDialog } from "./add-to-document-dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
@@ -15,6 +16,8 @@ interface Props { storyId: string }
 export function CoauthorChat({ storyId }: Props) {
   const { messages, isLoading, isFloraTyping, send, isSending, approveSuggestion, rejectSuggestion } = useChat(storyId);
   const [input, setInput] = useState("");
+  const [addDialogContent, setAddDialogContent] = useState("");
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll para o final
@@ -140,6 +143,21 @@ export function CoauthorChat({ storyId }: Props) {
                       )}
                     </div>
 
+                    {/* Botão "Adicionar ao documento" para respostas da Flora */}
+                    {m.role === "ASSISTANT" && m.content.trim().length > 20 && !m.suggestion && (
+                      <button
+                        onClick={() => {
+                          setAddDialogContent(m.content);
+                          setAddDialogOpen(true);
+                        }}
+                        className="mt-1 text-xs px-2 py-1 rounded-full bg-white/60 text-[#8B6B7A] hover:bg-[#FADADD] hover:text-[#B24C63] transition flex items-center gap-1"
+                        title="Adicionar este trecho ao documento da história"
+                      >
+                        <Sparkles className="w-3 h-3" />
+                        Adicionar ao documento
+                      </button>
+                    )}
+
                     {/* Card de sugestão pendente */}
                     {m.suggestion && !m.suggestion.isApproved && !m.suggestion.isRejected && (
                       <motion.div
@@ -258,6 +276,14 @@ export function CoauthorChat({ storyId }: Props) {
           🌸 A Flora tem acesso a todo o contexto da sua história · 🎤 Ditado disponível
         </p>
       </div>
+
+      {/* Modal "Adicionar ao documento" */}
+      <AddToDocumentDialog
+        open={addDialogOpen}
+        onOpenChange={setAddDialogOpen}
+        storyId={storyId}
+        initialContent={addDialogContent}
+      />
     </div>
   );
 }
