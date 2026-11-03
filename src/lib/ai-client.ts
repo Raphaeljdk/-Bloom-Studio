@@ -342,11 +342,12 @@ async function chatCompletionViaZAI(
   options?: { temperature?: number; max_tokens?: number }
 ): Promise<string> {
   const zai = await createAIClient();
-  const completion = await zai.chat.completions.create({
+  const payload = {
     messages,
     temperature: options?.temperature ?? 0.8,
     max_tokens: options?.max_tokens ?? 800,
-  } as Record<string, unknown>);
+  } as unknown as Parameters<typeof zai.chat.completions.create>[0];
+  const completion = await zai.chat.completions.create(payload);
   const content = completion.choices?.[0]?.message?.content;
   if (!content) throw new Error("Resposta vazia do z-ai SDK");
   return content;
