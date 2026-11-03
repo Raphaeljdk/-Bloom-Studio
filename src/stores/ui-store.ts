@@ -7,6 +7,7 @@ import { create } from "zustand";
 export type AppView = "auth" | "dashboard" | "story" | "admin";
 export type StorySection =
   | "document"
+  | "bible"
   | "characters"
   | "chapters"
   | "timeline"
