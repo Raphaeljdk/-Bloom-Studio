@@ -201,12 +201,13 @@ export function StoryEditor() {
   };
 
   return (
-    <div className="h-screen flex flex-col flora-bg-primary overflow-hidden">
+    <div className="h-[100dvh] flex flex-col flora-bg-primary overflow-hidden">
       {/* Top header */}
       <header className="flex-shrink-0 h-14 bg-[#C48D9E] text-white flex items-center px-2 sm:px-4 gap-2 sm:gap-3 border-b border-white/10">
         {/* Mobile: hamburger */}
         <Button
           onClick={() => setMobileSidebarOpen(true)}
+          aria-label="Abrir seções da história"
           variant="ghost"
           size="sm"
           className="lg:hidden text-white hover:bg-white/15"
@@ -312,9 +313,13 @@ export function StoryEditor() {
           onClick={toggleChat}
           variant="ghost"
           size="sm"
+          aria-label={chatOpen ? "Fechar conversa com Flora" : "Abrir conversa com Flora"}
+          aria-pressed={chatOpen}
           className="text-white hover:bg-white/15 flex-shrink-0"
         >
-          {chatOpen ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+          <Flower2 className="w-4 h-4" />
+          <span className="hidden sm:inline ml-1">Flora</span>
+          {chatOpen ? <ChevronRight className="ml-1 w-4 h-4" /> : <ChevronLeft className="ml-1 w-4 h-4" />}
         </Button>
       </header>
 
@@ -398,7 +403,7 @@ export function StoryEditor() {
             initial={{ x: 50, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: 50, opacity: 0 }}
-            className="hidden md:flex w-96 flex-shrink-0 border-l border-[#E6C2C7] bg-white flex-col"
+            className="hidden md:flex w-[min(24rem,36vw)] flex-shrink-0 border-l border-[#E6C2C7] bg-white flex-col"
           >
             <CoauthorChat storyId={storyId} />
           </motion.aside>
