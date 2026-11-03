@@ -11,6 +11,7 @@ export function AuthScreen() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const demoEnabled = process.env.NODE_ENV !== "production" || process.env.NEXT_PUBLIC_BLOOM_DEMO_ENABLED === "true";
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -164,6 +165,7 @@ export function AuthScreen() {
               icon={Lock}
               type="password"
               required
+              minLength={mode === "register" ? 8 : undefined}
               value={password}
               onChange={setPassword}
               placeholder="••••••••"
@@ -204,7 +206,7 @@ export function AuthScreen() {
             </motion.button>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-[#E6C2C7]/50">
+          {demoEnabled && <div className="mt-6 pt-6 border-t border-[#E6C2C7]/50">
             <motion.button
               onClick={demo}
               disabled={loading}
@@ -215,7 +217,7 @@ export function AuthScreen() {
               <Flower2 className="w-4 h-4" />
               Ou explorar com uma conta demo
             </motion.button>
-          </div>
+          </div>}
         </div>
 
         <motion.p
@@ -235,6 +237,7 @@ function InputField({
   icon: Icon,
   type,
   required,
+  minLength,
   value,
   onChange,
   placeholder,
@@ -242,6 +245,7 @@ function InputField({
   icon: typeof Mail;
   type: string;
   required?: boolean;
+  minLength?: number;
   value: string;
   onChange: (v: string) => void;
   placeholder: string;
@@ -255,6 +259,7 @@ function InputField({
       <input
         type={type}
         required={required}
+        minLength={minLength}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
