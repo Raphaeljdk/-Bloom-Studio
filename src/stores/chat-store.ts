@@ -13,11 +13,19 @@ export interface ChatSuggestion {
   isRejected: boolean;
 }
 
+export interface ChatProposal {
+  id: string;
+  actionType: string;
+  description: string;
+  status: "PENDING" | "APPROVED" | "REJECTED";
+}
+
 export interface ChatMessage {
   id: string;
   role: "USER" | "ASSISTANT" | "SYSTEM";
   content: string;
   suggestion?: ChatSuggestion;
+  proposals?: ChatProposal[];
   createdAt: string;
 }
 
@@ -33,6 +41,7 @@ interface ChatState {
   setError: (e: string | null) => void;
   attachSuggestionToMessage: (messageId: string, suggestion: ChatSuggestion) => void;
   resolveSuggestion: (eventId: string, approved: boolean) => void;
+  resolveProposal: (proposalId: string, status: ChatProposal['status']) => void;
   clear: () => void;
 }
 
@@ -76,6 +85,13 @@ export const useChatStore = create<ChatState>((set) => ({
             }
           : m
       ),
+    })),
+  resolveProposal: (proposalId, status) =>
+    set(s => ({
+      messages: s.messages.map(m => ({
+        ...m,
+        proposals: m.proposals?.map(p => p.id === proposalId ? { ...p, status } : p),
+      })),
     })),
   clear: () => set({ messages: [], error: null, isFloraTyping: false }),
 }));
