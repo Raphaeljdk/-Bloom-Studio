@@ -14,7 +14,7 @@ import { toast } from "sonner";
 interface Props { storyId: string }
 
 export function CoauthorChat({ storyId }: Props) {
-  const { messages, isLoading, isFloraTyping, send, isSending, approveSuggestion, rejectSuggestion } = useChat(storyId);
+  const { messages, isLoading, isFloraTyping, send, isSending, approveSuggestion, rejectSuggestion, decideProposal, isDecidingProposal } = useChat(storyId);
   const [input, setInput] = useState("");
   const [addDialogContent, setAddDialogContent] = useState("");
   const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -73,6 +73,7 @@ export function CoauthorChat({ storyId }: Props) {
     { label: "Criar ideias", prompt: "Me ajude a encontrar três caminhos criativos para a próxima cena.", icon: Lightbulb },
     { label: "Revisar texto", prompt: "Analise a coerência e o ritmo do capítulo atual sem alterar minha história.", icon: BookOpen },
     { label: "Desenvolver trama", prompt: "Quais conflitos e motivações posso aprofundar nesta história?", icon: Wand2 },
+    { label: "Checar coerência", prompt: "Faça uma auditoria de coerência da minha Bíblia da História: personagens, relações, cronologia e capítulos. Cite fatos específicos, destaque contradições e não altere nada sem minha aprovação.", icon: BookOpen },
   ];
 
   return (
@@ -177,6 +178,40 @@ export function CoauthorChat({ storyId }: Props) {
                         <Sparkles className="w-3 h-3" />
                         Adicionar ao documento
                       </button>
+                    )}
+
+                    {m.proposals && m.proposals.length > 0 && (
+                      <div className="mt-2 w-full space-y-2">
+                        {m.proposals.map(proposal => (
+                          <div key={proposal.id} className="rounded-xl border border-[#E6C2C7] bg-[#FFF6F3] p-3 shadow-sm">
+                            <div className="mb-2 flex items-center gap-2 text-xs font-bold text-[#B24C63]">
+                              <Sparkles className="h-4 w-4" /> Proposta de alteração
+                            </div>
+                            <p className="mb-2 break-words text-sm flora-text-primary">{proposal.description}</p>
+                            {proposal.status === "PENDING" ? (
+                              <>
+                                <p className="mb-3 text-xs flora-text-secondary">Nenhuma mudança será feita sem sua confirmação.</p>
+                                <div className="flex gap-2">
+                                  <Button type="button" size="sm" disabled={isDecidingProposal}
+                                    onClick={() => void decideProposal({ id: proposal.id, decision: "APPROVED" })}
+                                    className="flex-1 bg-[#7EB8A2] text-white hover:bg-[#6BA890]">
+                                    <Check className="mr-1 h-3.5 w-3.5" /> Aprovar e aplicar
+                                  </Button>
+                                  <Button type="button" size="sm" variant="outline" disabled={isDecidingProposal}
+                                    onClick={() => void decideProposal({ id: proposal.id, decision: "REJECTED" })}
+                                    className="flex-1 border-[#E6C2C7] text-[#8B6B7A]">
+                                    <X className="mr-1 h-3.5 w-3.5" /> Recusar
+                                  </Button>
+                                </div>
+                              </>
+                            ) : (
+                              <p className="flex items-center gap-1 text-xs font-semibold text-[#6B8D7D]">
+                                {proposal.status === "APPROVED" ? "✓ Aprovada e aplicada" : "Proposta recusada"}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     )}
 
                     {/* Card de sugestão pendente */}
