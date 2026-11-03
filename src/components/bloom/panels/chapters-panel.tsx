@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Trash2, BookOpen, X, Save, ChevronRight } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -55,6 +55,7 @@ export function ChaptersPanel({ storyId }: Props) {
     mutationFn: ({ id, patch }: { id: string; patch: Partial<Chapter> }) =>
       api.updateChapter(storyId, id, patch),
     onSuccess: (_d, { id, patch }) => updateChapter(id, patch),
+    onError: (e: Error) => toast.error(e.message || "Erro ao salvar capítulo"),
   });
 
   const deleteMutation = useMutation({
@@ -201,16 +202,32 @@ function ChapterEditor({
   const [summary, setSummary] = useState(chapter.summary || "");
   const [content, setContent] = useState(chapter.content || "");
   const [status, setStatus] = useState(chapter.status);
-  const [saveTimer, setSaveTimer] = useState<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingRef = useRef<Partial<Chapter>>({});
+  const updateRef = useRef(onUpdate);
+  updateRef.current = onUpdate;
 
-  // Auto-save com debounce de 2 segundos
-  const scheduleSave = (patch: Partial<Chapter>) => {
-    if (saveTimer) clearTimeout(saveTimer);
-    const t = setTimeout(() => {
-      onUpdate(patch);
-    }, 2000);
-    setSaveTimer(t);
+  // Une as edições dos campos antes de salvar, evitando perder alterações rápidas.
+  const flushSave = () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = null;
+    const patch = pendingRef.current;
+    pendingRef.current = {};
+    if (Object.keys(patch).length > 0) updateRef.current(patch);
   };
+
+  const scheduleSave = (patch: Partial<Chapter>) => {
+    pendingRef.current = { ...pendingRef.current, ...patch };
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(flushSave, 1200);
+  };
+
+  // Ao trocar de painel, envia imediatamente o que ainda não foi salvo.
+  useEffect(() => () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    const patch = pendingRef.current;
+    if (Object.keys(patch).length > 0) updateRef.current(patch);
+  }, []);
 
   const statusInfo = STATUS_LABELS[status] || STATUS_LABELS.DRAFT;
 
@@ -256,6 +273,7 @@ function ChapterEditor({
               scheduleSave({ title: e.target.value });
             }}
             placeholder="Título do capítulo"
+            onBlur={flushSave}
             className="text-2xl font-bold border-[#E6C2C7] bg-white"
           />
         </div>
@@ -272,6 +290,7 @@ function ChapterEditor({
             }}
             placeholder="Helena chega à casa de Tia Rosa e percebe que o jardim está vivo demais para uma propriedade abandonada."
             rows={2}
+            onBlur={flushSave}
             className="bg-white border-[#E6C2C7] resize-none italic"
           />
         </div>
@@ -293,10 +312,11 @@ function ChapterEditor({
             }}
             placeholder="Comece a escrever... A Flora pode ajudar com cenas, descrições e desenvolvimento."
             rows={20}
+            onBlur={flushSave}
             className="bg-white border-[#E6C2C7] resize-y font-serif text-base leading-relaxed flora-text-primary"
           />
           <p className="text-xs flora-text-secondary mt-2 italic">
-            💮 Salvamento automático a cada 2 segundos.
+            💮 Salva após 1,2 segundo sem digitar ou ao sair do campo.
           </p>
         </div>
       </div>
