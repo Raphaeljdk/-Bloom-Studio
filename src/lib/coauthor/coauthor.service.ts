@@ -5,10 +5,12 @@
 // ========================================================
 
 import { db } from "@/lib/db";
+import crypto from "node:crypto";
 import { loadStoryContext, serializeContext } from "./context-builder";
 import { buildSystemPrompt } from "./prompt-templates";
 import { processResponse } from "./suggestion-guard";
-import { parseActions, executeAction, type ParsedAction } from "./action-parser";
+import { parseActions } from "./action-parser";
+import { ensureFloraProposalStorage } from "@/lib/writing-storage";
 import { aiChatCompletion } from "@/lib/ai-client";
 
 /**
@@ -41,7 +43,7 @@ export async function sendToFlora(params: {
   assistantMessageId: string;
   displayContent: string;
   suggestions: Array<{ id: string; title: string; description: string; impact: string | null }>;
-  actions: Array<{ confirmation: string }>;
+  proposals: Array<{ id: string; actionType: string; description: string; status: string }>;
   rawResponse: string;
 }> {
   const { storyId, userMessage } = params;
@@ -101,27 +103,20 @@ Sua mensagem foi salva e quando eu voltar a funcionar, posso continuar a convers
   // 7. Suggestion Guard analisa a resposta
   const guardResult = await processResponse(rawResponse, storyId);
 
-  // 7.5 Action Parser: detecta e executa ações (adicionar personagem, capítulo, etc)
-  const { actions, cleanContent: contentAfterActions } = parseActions(guardResult.displayContent || rawResponse);
-
-  const executedActions: Array<{ confirmation: string }> = [];
-  for (const action of actions) {
-    try {
-      await executeAction(action, storyId);
-      executedActions.push({ confirmation: action.confirmation });
-    } catch (err) {
-      console.error("[coauthor] erro ao executar ação:", err);
-    }
-  }
-
-  // Conteúdo final: texto limpo + confirmações de ações executadas
-  let finalContent = contentAfterActions;
-  if (executedActions.length > 0) {
-    const confirmations = executedActions.map((a) => a.confirmation).join("\n");
-    finalContent = finalContent
-      ? `${finalContent}\n\n---\n${confirmations}`
-      : confirmations;
-  }
+  // 7.5 A Flora só PROPÕE alterações; nenhuma mutação ocorre até aprovação do autor.
+  const { actions, cleanContent } = parseActions(guardResult.displayContent || rawResponse);
+  const proposedActions = actions
+    .filter(action => {
+      const data = JSON.stringify(action.data);
+      return data.length <= 3500 &&
+        Object.values(action.data).every(value => value == null ||
+          (typeof value === "string" && value.length <= 2000));
+    })
+    .slice(0, 5);
+  const finalContent = cleanContent ||
+    (proposedActions.length > 0
+      ? "Preparei sugestões de edição. Revise os cartões abaixo e aprove somente o que desejar."
+      : rawResponse);
 
   // 8. Persiste mensagem do assistente
   const suggestionRef = guardResult.suggestions[0]?.id || null;
@@ -129,18 +124,41 @@ Sua mensagem foi salva e quando eu voltar a funcionar, posso continuar a convers
     data: {
       sessionId,
       role: "ASSISTANT",
-      content: finalContent || rawResponse,
+      content: finalContent,
       suggestionRef,
       suggestionType: guardResult.suggestions.length > 0 ? "IMPORTANT_EVENT" : null,
       isApproved: false,
     },
   });
 
+  // As propostas ficam no banco para o autor poder aprovar após atualizar a página.
+  let proposals: Array<{ id: string; actionType: string; description: string; status: string }> = [];
+  if (proposedActions.length) {
+    await ensureFloraProposalStorage();
+    const created = await db.$transaction(
+      proposedActions.map(action =>
+        db.floraProposal.create({
+          data: {
+            id: crypto.randomUUID(),
+            storyId,
+            messageId: assistantMessage.id,
+            actionType: action.type,
+            payload: JSON.stringify(action.data),
+            description: action.confirmation.replace(/^✓\s*/, "").replace(/^(adicionado|criado|atualizado)/i, "Proposta:"),
+            status: "PENDING",
+          },
+          select: { id: true, actionType: true, description: true, status: true },
+        })
+      )
+    );
+    proposals = created;
+  }
+
   return {
     assistantMessageId: assistantMessage.id,
     displayContent: finalContent || rawResponse,
     suggestions: guardResult.suggestions,
-    actions: executedActions,
+    proposals,
     rawResponse,
   };
 }
