@@ -3,7 +3,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api-client";
 import { useStoryStore, type StorySummary } from "@/stores/story-store";
-import { useUIStore } from "@/stores/ui-store";
 import { toast } from "sonner";
 
 /**
@@ -15,8 +14,6 @@ export function useStories() {
   const setStories = useStoryStore((s) => s.setStories);
   const upsertStory = useStoryStore((s) => s.upsertStory);
   const removeStory = useStoryStore((s) => s.removeStory);
-  const statusFilter = useUIStore((s) => s.statusFilter);
-  const searchQuery = useUIStore((s) => s.searchQuery);
 
   const query = useQuery({
     queryKey: ["stories"],
@@ -52,17 +49,8 @@ export function useStories() {
     },
   });
 
-  const filtered = (query.data || []).filter((s) => {
-    if (statusFilter !== "ALL" && s.status !== statusFilter) return false;
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      return (
-        s.title.toLowerCase().includes(q) ||
-        (s.description || "").toLowerCase().includes(q)
-      );
-    }
-    return true;
-  });
+  // O dashboard aplica filtros sobre a lista completa, preservando a contagem real.
+  const filtered = query.data || [];
 
   return {
     stories: filtered,

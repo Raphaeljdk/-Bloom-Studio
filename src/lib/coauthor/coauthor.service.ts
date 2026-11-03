@@ -41,6 +41,7 @@ export async function sendToFlora(params: {
   assistantMessageId: string;
   displayContent: string;
   suggestions: Array<{ id: string; title: string; description: string; impact: string | null }>;
+  actions: Array<{ confirmation: string }>;
   rawResponse: string;
 }> {
   const { storyId, userMessage } = params;

@@ -8,33 +8,53 @@
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
 import crypto from "crypto";
+import { hashPassword } from "@/lib/password";
 
 const SESSION_COOKIE = "bloom_session";
-const SECRET = process.env.JWT_SECRET || "bloom-studio-dev-secret-2026";
+const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
+function getSessionSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (secret && secret.length >= 32) return secret;
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("JWT_SECRET não configurado: defina um segredo forte na Vercel");
+  }
+  return "bloom-studio-local-development-only-secret";
+}
 
 function sign(payload: string): string {
-  const hmac = crypto.createHmac("sha256", SECRET).update(payload).digest("hex");
+  const hmac = crypto.createHmac("sha256", getSessionSecret()).update(payload).digest("hex");
   return `${payload}.${hmac}`;
 }
 
 function verify(token: string): string | null {
   const idx = token.lastIndexOf(".");
-  if (idx === -1) return null;
+  if (idx < 0) return null;
   const payload = token.slice(0, idx);
-  const sig = token.slice(idx + 1);
-  const expected = crypto.createHmac("sha256", SECRET).update(payload).digest("hex");
-  if (sig !== expected) return null;
-  return payload;
+  const signature = token.slice(idx + 1);
+  if (!/^[a-f0-9]{64}$/i.test(signature)) return null;
+  const expected = crypto.createHmac("sha256", getSessionSecret()).update(payload).digest();
+  const received = Buffer.from(signature, "hex");
+  if (received.length !== expected.length || !crypto.timingSafeEqual(expected, received)) return null;
+
+  const separator = payload.lastIndexOf(":");
+  if (separator < 0) return null;
+  const userId = payload.slice(0, separator);
+  const issuedAt = Number(payload.slice(separator + 1));
+  if (!userId || !Number.isFinite(issuedAt) || issuedAt > Date.now() + 60_000 ||
+      Date.now() - issuedAt > SESSION_TTL_MS) return null;
+  return userId;
 }
 
 /**
  * Cria sessão para um usuário (server-side).
  */
 export async function createSession(userId: string): Promise<void> {
-  const token = sign(userId);
+  const token = sign(`${userId}:${Date.now()}`);
   const store = await cookies();
   store.set(SESSION_COOKIE, token, {
     httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
     maxAge: 60 * 60 * 24 * 30, // 30 dias
@@ -111,7 +131,8 @@ export async function ensureDemoUser() {
     data: {
       name: "Escritora Bloom",
       email: "demo@bloom.studio",
-      password: "bloom-demo",
+      password: hashPassword("bloom-demo"),
+      role: "USER",
     },
   });
 }

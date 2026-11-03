@@ -16,11 +16,18 @@ export interface SuggestionExtracted {
   impact?: string;
 }
 
+export interface PersistedSuggestion {
+  id: string;
+  title: string;
+  description: string;
+  impact: string | null;
+}
+
 export interface GuardResult {
   /** Texto limpo para exibir ao usuário (sem o bloco de sugestão bruto) */
   displayContent: string;
   /** Sugestões extraídas (uma ou mais) — já persistidas como pendentes */
-  suggestions: SuggestionExtracted[];
+  suggestions: PersistedSuggestion[];
 }
 
 /**

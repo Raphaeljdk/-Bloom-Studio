@@ -38,62 +38,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const boot = async () => {
       try {
-        // 1. Tenta sessão existente
-        const meRes = await fetch("/api/auth/me");
-        if (!meRes.ok) throw new Error(`auth/me ${meRes.status}`);
+        // Nunca entrar automaticamente em uma conta compartilhada de demonstração.
+        const meRes = await fetch("/api/auth/me", { cache: "no-store" });
+        if (!meRes.ok) throw new Error(`Falha ao validar sessão (${meRes.status})`);
         const meData = await safeJson<{ user: BloomUser | null }>(meRes);
         if (cancelled) return;
-
         if (meData?.user) {
-          // Sessão válida → libera dashboard
           setAuth({ loading: false, user: meData.user });
-          setView("dashboard");
-          return;
-        }
-
-        // 2. Sem sessão → cria demo automaticamente
-        const loginRes = await fetch("/api/auth/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({}),
-        });
-        if (cancelled) return;
-
-        if (!loginRes.ok) {
-          setAuth({ loading: false, user: null });
-          setView("auth");
-          return;
-        }
-
-        const loginData = await safeJson<BloomUser & { demo?: boolean }>(loginRes);
-        if (cancelled) return;
-
-        if (loginData?.id) {
-          // 3. CRÍTICO: valida que o cookie foi setado fazendo um /me novamente.
-          try {
-            const verifyRes = await fetch("/api/auth/me");
-            if (verifyRes.ok) {
-              const verifyData = await safeJson<{ user: BloomUser | null }>(verifyRes);
-              if (cancelled) return;
-              if (verifyData?.user) {
-                setAuth({ loading: false, user: verifyData.user });
-                setView("dashboard");
-                return;
-              }
-            }
-          } catch {
-            // ignore verify error, fall through
-          }
-          // Fallback: mesmo sem verificação, libera dashboard (cookie deve estar OK)
-          setAuth({ loading: false, user: { id: loginData.id, name: loginData.name, email: loginData.email, role: loginData.role } });
           setView("dashboard");
         } else {
           setAuth({ loading: false, user: null });
           setView("auth");
         }
-      } catch (err) {
+      } catch (error) {
         if (cancelled) return;
-        console.error("[AuthProvider] boot error:", err);
+        console.error("[AuthProvider] boot error:", error);
         setAuth({ loading: false, user: null });
         setView("auth");
       }
@@ -122,7 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const res = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, name }),
+      body: JSON.stringify({ email, password, name, demo: !email && !password && !name }),
     });
     if (!res.ok) {
       const err = await safeJson<{ error?: string }>(res);

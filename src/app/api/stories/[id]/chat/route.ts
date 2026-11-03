@@ -37,7 +37,7 @@ export async function GET(
   // Para cada mensagem com suggestionRef, busca o evento vinculado
   const messagesWithSuggestions = await Promise.all(
     session.messages.map(async (m) => {
-      let suggestion = undefined;
+      let suggestion: { id: string; title: string; description: string; impact: string | null; isApproved: boolean; isRejected: boolean } | undefined;
       if (m.suggestionRef) {
         const event = await db.importantEvent.findUnique({
           where: { id: m.suggestionRef },
