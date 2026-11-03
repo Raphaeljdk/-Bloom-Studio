@@ -30,6 +30,10 @@ export async function POST(req: Request) {
   }
 
   if (email && password) {
+    const demoAllowed = process.env.NODE_ENV !== "production" || process.env.BLOOM_DEMO_ENABLED === "true";
+    if (email === "demo@bloom.studio" && !demoAllowed) {
+      return NextResponse.json({ error: "Conta demo desativada neste ambiente" }, { status: 403 });
+    }
     const user = await db.user.findUnique({ where: { email } });
     if (!user || !verifyPassword(password, user.password)) {
       return NextResponse.json({ error: "Credenciais inválidas" }, { status: 401 });
