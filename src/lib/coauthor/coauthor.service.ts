@@ -149,14 +149,19 @@ Sua mensagem foi salva e quando eu voltar a funcionar, posso continuar a convers
  * Aprova uma sugestão de evento: marca como aprovada + marca a
  * mensagem do chat como aprovada. Usa transação Prisma para garantir atomicidade.
  */
-export async function approveSuggestion(eventId: string): Promise<void> {
+export async function approveSuggestion(eventId: string, userId: string): Promise<void> {
+  const event = await db.importantEvent.findFirst({
+    where: { id: eventId, suggestedBy: "COAUTHOR", story: { userId } },
+    select: { id: true },
+  });
+  if (!event) throw new Error("NOT_FOUND");
   await db.$transaction([
-    db.importantEvent.update({
-      where: { id: eventId },
+    db.importantEvent.updateMany({
+      where: { id: eventId, story: { userId }, suggestedBy: "COAUTHOR" },
       data: { isApproved: true },
     }),
     db.chatMessage.updateMany({
-      where: { suggestionRef: eventId },
+      where: { suggestionRef: eventId, session: { story: { userId } } },
       data: { isApproved: true },
     }),
   ]);
@@ -165,12 +170,19 @@ export async function approveSuggestion(eventId: string): Promise<void> {
 /**
  * Recusa uma sugestão: deleta o evento pendente + remove referência da mensagem.
  */
-export async function rejectSuggestion(eventId: string): Promise<void> {
+export async function rejectSuggestion(eventId: string, userId: string): Promise<void> {
+  const event = await db.importantEvent.findFirst({
+    where: { id: eventId, isApproved: false, suggestedBy: "COAUTHOR", story: { userId } },
+    select: { id: true },
+  });
+  if (!event) throw new Error("NOT_FOUND");
   await db.$transaction([
-    db.importantEvent.delete({ where: { id: eventId } }),
     db.chatMessage.updateMany({
-      where: { suggestionRef: eventId },
+      where: { suggestionRef: eventId, session: { story: { userId } } },
       data: { suggestionRef: null, suggestionType: null },
+    }),
+    db.importantEvent.deleteMany({
+      where: { id: eventId, isApproved: false, story: { userId }, suggestedBy: "COAUTHOR" },
     }),
   ]);
 }
