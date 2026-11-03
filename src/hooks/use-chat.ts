@@ -22,6 +22,7 @@ export function useChat(storyId: string | null) {
   const setFloraTyping = useChatStore((s) => s.setFloraTyping);
   const attachSuggestionToMessage = useChatStore((s) => s.attachSuggestionToMessage);
   const resolveSuggestion = useChatStore((s) => s.resolveSuggestion);
+  const resolveProposal = useChatStore((s) => s.resolveProposal);
   const isFloraTyping = useChatStore((s) => s.isFloraTyping);
 
   const addEvent = useStoryStore((s) => s.addEvent);
@@ -37,6 +38,7 @@ export function useChat(storyId: string | null) {
         role: m.role as "USER" | "ASSISTANT" | "SYSTEM",
         content: m.content,
         createdAt: m.createdAt,
+        proposals: m.proposals || [],
         suggestion: m.suggestion
           ? {
               id: m.suggestion.id,
@@ -78,6 +80,7 @@ export function useChat(storyId: string | null) {
         id: result.assistantMessageId,
         role: "ASSISTANT",
         content: result.displayContent,
+        proposals: result.proposals || [],
         createdAt: new Date().toISOString(),
       });
       // Se houver sugestões, anexa à última mensagem do assistente
@@ -92,18 +95,9 @@ export function useChat(storyId: string | null) {
           isRejected: false,
         });
       }
-      // Se houver ações executadas, mostra toast e invalida tudo
-      if (result.actions && result.actions.length > 0) {
-        result.actions.forEach((a) => {
-          toast.success(a.confirmation, { duration: 4000 });
-        });
-        // Invalida tudo para recarregar personagens, capítulos, etc.
-        qc.invalidateQueries({ queryKey: ["story", storyId] });
-        qc.invalidateQueries({ queryKey: ["stories"] });
-      } else {
-        // Invalida important events para atualizar painel
-        qc.invalidateQueries({ queryKey: ["story", storyId] });
-      }
+      // Nenhuma ação da Flora é aplicada automaticamente. O autor aprova nos cartões.
+      if (result.proposals?.length) toast.info("Novas propostas da Flora aguardam sua aprovação.");
+      qc.invalidateQueries({ queryKey: ["story", storyId] });
     },
     onError: (e: Error) => {
       toast.error(`Flora não pôde responder: ${e.message}`);
@@ -138,6 +132,18 @@ export function useChat(storyId: string | null) {
     },
   });
 
+  const decideProposalMutation = useMutation({
+    mutationFn: ({ id, decision }: { id: string; decision: "APPROVED" | "REJECTED" }) =>
+      api.decideFloraProposal(storyId!, id, decision),
+    onSuccess: (result) => {
+      resolveProposal(result.proposal.id, result.proposal.status);
+      qc.invalidateQueries({ queryKey: ["story", storyId] });
+      qc.invalidateQueries({ queryKey: ["stories"] });
+      toast.success(result.proposal.status === "APPROVED" ? "Alteração aprovada e aplicada!" : "Proposta recusada.");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
   return {
     messages,
     isLoading: historyQuery.isLoading,
@@ -146,5 +152,7 @@ export function useChat(storyId: string | null) {
     isSending: sendMutation.isPending,
     approveSuggestion: approveMutation.mutateAsync,
     rejectSuggestion: rejectMutation.mutateAsync,
+    decideProposal: decideProposalMutation.mutateAsync,
+    isDecidingProposal: decideProposalMutation.isPending,
   };
 }
