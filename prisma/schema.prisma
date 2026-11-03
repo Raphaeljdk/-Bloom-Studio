@@ -50,6 +50,7 @@ model Story {
   chatSessions    ChatSession[]
   freeWriteDraft  FreeWriteDraft?
   writingVersions WritingVersion[]
+  floraProposals FloraProposal[]
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
 }
@@ -134,6 +135,7 @@ model ChatMessage {
   isApproved     Boolean     @default(false)
   sessionId      String
   session        ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  floraProposals FloraProposal[]
   createdAt      DateTime    @default(now())
 }
 
@@ -165,4 +167,21 @@ model WritingVersion {
 
   @@index([storyId, kind, createdAt(sort: Desc)], map: "WritingVersion_story_kind_date_idx")
   @@index([chapterId, createdAt(sort: Desc)], map: "WritingVersion_chapter_date_idx")
+}
+
+model FloraProposal {
+  id          String      @id
+  storyId     String
+  messageId   String
+  actionType  String
+  payload     String
+  description String
+  status      String      @default("PENDING")
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  story       Story       @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  message     ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([storyId, status, createdAt(sort: Desc)], map: "FloraProposal_story_status_date_idx")
+  @@index([messageId], map: "FloraProposal_message_idx")
 }
