@@ -65,6 +65,7 @@ export function ChaptersPanel({ storyId }: Props) {
       if (currentChapterId === id) setCurrentChapter(null);
       toast.info("Capítulo removido");
     },
+    onError: (error: Error) => toast.error(error.message || "Erro ao remover capítulo"),
   });
 
   const currentChapter = chapters.find((c) => c.id === currentChapterId);
@@ -174,8 +175,15 @@ export function ChaptersPanel({ storyId }: Props) {
                   {status.label}
                 </span>
                 <button
-                  onClick={(e) => { e.stopPropagation(); deleteMutation.mutate(c.id); }}
-                  className="opacity-0 group-hover:opacity-100 transition text-[#8B6B7A] hover:text-[#D4818B] p-1"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (confirm(`Remover o capítulo "${c.title || `Capítulo ${c.number}`}"? Esta ação não pode ser desfeita.`)) {
+                      deleteMutation.mutate(c.id);
+                    }
+                  }}
+                  disabled={deleteMutation.isPending}
+                  aria-label={`Remover capítulo ${c.title || c.number}`}
+                  className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100 transition text-[#8B6B7A] hover:text-[#D4818B] p-1 disabled:opacity-40"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
