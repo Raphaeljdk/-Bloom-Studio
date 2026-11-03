@@ -11,9 +11,10 @@ export async function POST(
 
   const { eventId } = await params;
   try {
-    await rejectSuggestion(eventId);
+    await rejectSuggestion(eventId, user.id);
     return NextResponse.json({ ok: true });
   } catch (err) {
+    if (err instanceof Error && err.message === "NOT_FOUND") return NextResponse.json({ error: "Sugestão não encontrada" }, { status: 404 });
     console.error("[reject] erro:", err);
     return NextResponse.json({ error: "Erro ao recusar" }, { status: 500 });
   }
