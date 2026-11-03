@@ -48,6 +48,8 @@ model Story {
   importantEvents ImportantEvent[]
   annotations     Annotation[]
   chatSessions    ChatSession[]
+  freeWriteDraft  FreeWriteDraft?
+  writingVersions WritingVersion[]
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
 }
@@ -73,6 +75,7 @@ model Chapter {
   status    String   @default("DRAFT")
   storyId   String
   story     Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  writingVersions WritingVersion[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -132,4 +135,34 @@ model ChatMessage {
   sessionId      String
   session        ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   createdAt      DateTime    @default(now())
+}
+
+// ========================================================
+// HISTÓRICO DE ESCRITA — migração aditiva, sem perda de dados
+// Tabelas criadas de forma idempotente em src/lib/writing-storage.ts
+// ========================================================
+
+model FreeWriteDraft {
+  storyId   String   @id
+  content   String   @default("")
+  version   Int      @default(0)
+  updatedAt DateTime @updatedAt
+  story     Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+}
+
+model WritingVersion {
+  id        String   @id
+  storyId   String
+  chapterId String?
+  kind      String
+  content   String
+  title     String?
+  summary   String?
+  status    String?
+  createdAt DateTime @default(now())
+  story     Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  chapter   Chapter? @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  @@index([storyId, kind, createdAt(sort: Desc)], map: "WritingVersion_story_kind_date_idx")
+  @@index([chapterId, createdAt(sort: Desc)], map: "WritingVersion_chapter_date_idx")
 }
