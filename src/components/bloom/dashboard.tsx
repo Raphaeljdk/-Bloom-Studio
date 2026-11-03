@@ -153,7 +153,7 @@ export function Dashboard() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-5 sm:py-7">
         {/* Hero */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
@@ -165,13 +165,37 @@ export function Dashboard() {
             <span className="text-2xl">🌸</span>
             <div className="h-px flex-1 bg-gradient-to-r from-transparent via-[#C48D9E] to-transparent" />
           </div>
-          <h2 className="text-3xl sm:text-5xl font-serif font-bold flora-text-gradient mb-3 text-center">
+          <h2 className="text-3xl sm:text-4xl font-serif font-bold flora-text-gradient mb-2 text-center">
             Suas histórias
           </h2>
           <p className="text-sm sm:text-base flora-text-secondary text-center max-w-2xl mx-auto">
             Cada jardim começa com uma semente. Escolha uma história para continuar ou plante uma nova.
           </p>
         </motion.div>
+
+        {!isLoading && stories.length > 0 && (
+          <section aria-label="Resumo das suas histórias" className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+            {[
+              { label: "Total de histórias", value: stories.length, icon: BookOpen },
+              { label: "Em progresso", value: stories.filter((s) => s.status === "IN_PROGRESS").length, icon: Clock },
+              { label: "Concluídas", value: stories.filter((s) => s.status === "COMPLETED").length, icon: Sparkles },
+              { label: "Capítulos", value: stories.reduce((total, s) => total + s.chaptersCount, 0), icon: Flower2 },
+            ].map((metric) => {
+              const Icon = metric.icon;
+              return (
+                <div key={metric.label} className="flex items-center gap-3 rounded-2xl border border-[#E6C2C7] bg-white/85 px-4 py-3 shadow-sm">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#FADADD] text-[#B24C63]">
+                    <Icon className="h-4 w-4" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-xl font-bold leading-6 flora-text-primary">{metric.value}</p>
+                    <p className="text-xs flora-text-secondary">{metric.label}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </section>
+        )}
 
         {/* Toolbar */}
         <div className="flex flex-col sm:flex-row gap-3 mb-6">
@@ -416,6 +440,14 @@ export function Dashboard() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: idx * 0.04 }}
                   onClick={() => openStory(story.id)}
+                  onKeyDown={(event) => {
+                    if ((event.key === "Enter" || event.key === " ") && event.target === event.currentTarget) {
+                      event.preventDefault();
+                      openStory(story.id);
+                    }
+                  }}
+                  tabIndex={0}
+                  aria-label={`Abrir história: ${story.title}`}
                   className="group relative cursor-pointer rounded-2xl bg-[#FADADD] flora-border border p-0 hover:flora-shadow-accent transition-all duration-300 hover:-translate-y-1 overflow-hidden"
                 >
                   {/* Capa (se existir) */}
