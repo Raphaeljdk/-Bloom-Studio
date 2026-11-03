@@ -58,15 +58,18 @@ export function Dashboard() {
   }, []);
 
   const handleCreate = async () => {
-    if (!newTitle.trim()) return;
-    await create({
-      title: newTitle,
-      description: newDesc,
-      genre: newGenre,
-      tone: newTone,
-    });
-    setNewTitle(""); setNewDesc(""); setNewGenre(""); setNewTone("");
-    setCreateOpen(false);
+    try {
+      await create({
+        title: newTitle.trim() || ".",
+        description: newDesc,
+        genre: newGenre,
+        tone: newTone,
+      });
+      setNewTitle(""); setNewDesc(""); setNewGenre(""); setNewTone("");
+      setCreateOpen(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erro ao criar história");
+    }
   };
 
   const handleDemo = async () => {
@@ -92,6 +95,14 @@ export function Dashboard() {
     if (!confirm(`Remover "${title}"? Esta ação não pode ser desfeita.`)) return;
     await remove(id);
   };
+
+  const term = searchQuery.trim().toLocaleLowerCase("pt-BR");
+  const filteredStories = stories.filter((story) => {
+    const statusOk = statusFilter === "ALL" || story.status === statusFilter;
+    const textOk = !term || [story.title, story.description, story.genre]
+      .some((value) => (value || "").toLocaleLowerCase("pt-BR").includes(term));
+    return statusOk && textOk;
+  });
 
   return (
     <div className="min-h-screen flora-bg-primary flora-pattern">
@@ -354,10 +365,7 @@ export function Dashboard() {
                     Cancelar
                   </Button>
                   <Button
-                    onClick={() => {
-                      if (!newTitle.trim()) setNewTitle(".");
-                      handleCreate();
-                    }}
+                    onClick={handleCreate}
                     disabled={isCreating}
                     className="flora-gradient-accent text-white"
                   >
@@ -369,6 +377,17 @@ export function Dashboard() {
           </Dialog>
         </div>
 
+        {!isLoading && stories.length > 0 && (
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2 text-sm flora-text-secondary" role="status">
+            <span>Exibindo <strong className="flora-text-primary">{filteredStories.length}</strong> de {stories.length} histórias</span>
+            {(term || statusFilter !== "ALL") && (
+              <button type="button" onClick={() => { setSearchQuery(""); setStatusFilter("ALL"); }}
+                className="font-medium text-[#B24C63] hover:underline focus-visible:underline">
+                Limpar filtros
+              </button>
+            )}
+          </div>
+        )}
         {/* Grid */}
         {isLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -378,9 +397,17 @@ export function Dashboard() {
           </div>
         ) : stories.length === 0 ? (
           <EmptyState onCreate={() => setCreateOpen(true)} onDemo={handleDemo} />
+        ) : filteredStories.length === 0 ? (
+          <div className="rounded-2xl border border-[#E6C2C7] bg-white/80 px-6 py-14 text-center">
+            <Search className="mx-auto mb-3 h-8 w-8 text-[#C48D9E]" />
+            <h3 className="text-lg font-semibold flora-text-primary">Nenhuma história encontrada</h3>
+            <p className="mt-1 text-sm flora-text-secondary">Tente outro título, gênero ou status.</p>
+            <Button variant="outline" className="mt-5 border-[#C48D9E] text-[#B24C63]"
+              onClick={() => { setSearchQuery(""); setStatusFilter("ALL"); }}>Limpar filtros</Button>
+          </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {stories.map((story, idx) => {
+            {filteredStories.map((story, idx) => {
               const status = STATUS_LABELS[story.status] || STATUS_LABELS.DRAFT;
               return (
                 <motion.div
@@ -406,7 +433,7 @@ export function Dashboard() {
                       </span>
                       <button
                         onClick={(e) => handleDelete(e, story.id, story.title)}
-                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition bg-white/80 text-[#8B6B7A] hover:text-[#D4818B] p-1 rounded-full"
+                        className="absolute top-2 right-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100 transition bg-white/80 text-[#8B6B7A] hover:text-[#D4818B] p-1 rounded-full"
                         aria-label="Remover"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -425,7 +452,7 @@ export function Dashboard() {
                           </span>
                           <button
                             onClick={(e) => handleDelete(e, story.id, story.title)}
-                            className="opacity-0 group-hover:opacity-100 transition text-[#8B6B7A] hover:text-[#D4818B] p-1"
+                            className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus-visible:opacity-100 transition text-[#8B6B7A] hover:text-[#D4818B] p-1"
                             aria-label="Remover"
                           >
                             <Trash2 className="w-4 h-4" />
