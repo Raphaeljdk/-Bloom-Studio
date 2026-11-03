@@ -4,6 +4,7 @@
 // ========================================================
 
 import { db } from "@/lib/db";
+import type { Prisma } from "@prisma/client";
 
 export interface ParsedAction {
   type: "add_character" | "add_chapter" | "add_timeline" | "add_annotation" | "update_title" | "update_description" | "add_event";
@@ -169,12 +170,12 @@ export function parseActions(response: string): {
 /**
  * Executa uma ação detectada, modificando a história no banco.
  */
-export async function executeAction(action: ParsedAction, storyId: string): Promise<void> {
+export async function executeAction(action: ParsedAction, storyId: string, tx: Prisma.TransactionClient = db): Promise<void> {
   const { type, data } = action;
 
   switch (type) {
     case "add_character":
-      await db.character.create({
+      await tx.character.create({
         data: {
           name: String(data.name),
           role: data.role ? String(data.role) : null,
@@ -186,12 +187,12 @@ export async function executeAction(action: ParsedAction, storyId: string): Prom
       break;
 
     case "add_chapter": {
-      const last = await db.chapter.findFirst({
+      const last = await tx.chapter.findFirst({
         where: { storyId },
         orderBy: { number: "desc" },
       });
       const number = (last?.number || 0) + 1;
-      await db.chapter.create({
+      await tx.chapter.create({
         data: {
           number,
           title: data.title ? String(data.title) : null,
@@ -203,12 +204,12 @@ export async function executeAction(action: ParsedAction, storyId: string): Prom
     }
 
     case "add_timeline": {
-      const last = await db.timelineEvent.findFirst({
+      const last = await tx.timelineEvent.findFirst({
         where: { storyId },
         orderBy: { order: "desc" },
       });
       const order = (last?.order || 0) + 1;
-      await db.timelineEvent.create({
+      await tx.timelineEvent.create({
         data: {
           title: String(data.title),
           date: data.date ? String(data.date) : null,
@@ -221,7 +222,7 @@ export async function executeAction(action: ParsedAction, storyId: string): Prom
     }
 
     case "add_annotation":
-      await db.annotation.create({
+      await tx.annotation.create({
         data: {
           category: String(data.category),
           content: String(data.content),
@@ -231,29 +232,21 @@ export async function executeAction(action: ParsedAction, storyId: string): Prom
       break;
 
     case "update_title":
-      try {
-        await db.story.update({
-          where: { id: storyId },
-          data: { title: String(data.title) },
-        });
-      } catch {
-        await db.$executeRaw`UPDATE Story SET title = ${String(data.title)}, updatedAt = ${new Date()} WHERE id = ${storyId}`;
-      }
+      await tx.story.update({
+        where: { id: storyId },
+        data: { title: String(data.title) },
+      });
       break;
 
     case "update_description":
-      try {
-        await db.story.update({
-          where: { id: storyId },
-          data: { description: String(data.description) },
-        });
-      } catch {
-        await db.$executeRaw`UPDATE Story SET description = ${String(data.description)}, updatedAt = ${new Date()} WHERE id = ${storyId}`;
-      }
+      await tx.story.update({
+        where: { id: storyId },
+        data: { description: String(data.description) },
+      });
       break;
 
     case "add_event":
-      await db.importantEvent.create({
+      await tx.importantEvent.create({
         data: {
           title: String(data.title),
           description: String(data.description),
@@ -271,22 +264,20 @@ export async function executeAction(action: ParsedAction, storyId: string): Prom
  * Atualiza o prompt da Flora com instruções de como usar ações.
  */
 export const ACTION_INSTRUCTIONS = `
-🌷 AÇÕES DIRETAS (PODE MODIFICAR A HISTÓRIA):
-Quando o autor pedir para você adicionar algo à história, use marcadores de ação. A ação será executada automaticamente e mostrada como confirmação. NÃO peça permissão — execute se o autor pediu claramente.
+🌷 PROPOSTAS DE ALTERAÇÃO — APROVAÇÃO OBRIGATÓRIA:
+Você pode SUGERIR alterações na história com marcadores de ação, mas NUNCA afirmar que já foram aplicadas.
+Cada proposta aparecerá em um cartão separado; o autor pode aprovar ou recusar.
+É proibido alterar a história sem a aprovação explícita do autor no cartão.
 
-Formatos (use exatamente):
+Formatos (use somente se o autor pedir mudanças concretas):
 - [ACAO:personagem] Nome | Função | Descrição | Traços [/ACAO]
 - [ACAO:capitulo] Título | Resumo [/ACAO]
 - [ACAO:cronologia] Título | Data | Descrição [/ACAO]
-- [ACAO:anotacao] CATEGORIA | Conteúdo [/ACAO]  (categorias: IDEA, QUESTION, DECISION, OBSERVATION)
+- [ACAO:anotacao] CATEGORIA | Conteúdo [/ACAO]
 - [ACAO:titulo] Novo título [/ACAO]
 - [ACAO:descricao] Nova descrição [/ACAO]
 - [ACAO:evento] Título | Descrição | Impacto [/ACAO]
 
-EXCEÇÕES (NÃO execute sem confirmação explícita do autor):
-- Eventos importantes que mudam a trama central → use [SUGESTÃO_DE_EVENTO] em vez de [ACAO:evento]
-- Mudanças no título se o autor não pediu explicitamente
-
-Use as ações QUANDO o autor pedir claramente: "adicione um personagem chamado X", "crie um capítulo sobre Y", "anote isso", etc.
-Sempre explique o que fez em linguagem natural também.
+Se o usuário pediu apenas ideias, revisão ou análise, responda sem ações.
+NUNCA diga "adicionei", "alterei" ou "atualizei" até o autor confirmar uma proposta.
 `;
