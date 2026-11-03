@@ -1,6 +1,6 @@
 "use client";
 
-import { FileText, Users, BookOpen, Clock, Sparkles, StickyNote, Flower2, BarChart3, Search, BookOpenCheck, Pen } from "lucide-react";
+import { BookMarked, FileText, Users, BookOpen, Clock, Sparkles, StickyNote, Flower2, BarChart3, Search, BookOpenCheck, Pen } from "lucide-react";
 import type { StorySection } from "@/stores/ui-store";
 import { useStoryStore } from "@/stores/story-store";
 
@@ -14,6 +14,7 @@ export function StorySidebar({ collapsed, currentSection, onSection }: Props) {
   const data = useStoryStore((s) => s.currentStory);
   const counts: Partial<Record<StorySection, number | string>> = {
     document: "",
+    bible: "",
     characters: data?.characters.length || 0,
     chapters: data?.chapters.length || 0,
     timeline: data?.timeline.length || 0,
@@ -27,6 +28,7 @@ export function StorySidebar({ collapsed, currentSection, onSection }: Props) {
 
   const items: Array<{ key: StorySection; label: string; icon: typeof Users }> = [
     { key: "document", label: "Documento", icon: FileText },
+    { key: "bible", label: "Bíblia da História", icon: BookMarked },
     { key: "characters", label: "Personagens", icon: Users },
     { key: "chapters", label: "Capítulos", icon: BookOpen },
     { key: "freewrite", label: "Escrita Livre", icon: Pen },
