@@ -177,11 +177,12 @@ bun run dev
 
 Acesse `http://localhost:3000`.
 
-### Credenciais demo
-- Email: `demo@bloom.studio`
-- Senha: `bloom-demo`
-
-Ou clique em **"explorar com uma conta demo"** na tela de login.
+### Acesso e ambiente de demonstração
+- Crie uma conta com uma senha de pelo menos 8 caracteres.
+- Em produção, defina a variável `JWT_SECRET` com um segredo aleatório de no mínimo 32 caracteres.
+- O sistema **não** entra automaticamente em conta de demonstração.
+- Para habilitar explicitamente a demonstração em um ambiente autorizado, use `BLOOM_DEMO_ENABLED=true` (servidor) e `NEXT_PUBLIC_BLOOM_DEMO_ENABLED=true` (interface). **Não habilite em produção com dados reais.**
+- As senhas de novos usuários são protegidas com scrypt. Contas antigas são migradas após login válido, sem apagar os dados do usuário.
 
 ### Criar história de exemplo
 No dashboard, clique em **"História de exemplo"** para criar uma história completa com:
@@ -233,6 +234,13 @@ No dashboard, clique em **"História de exemplo"** para criar uma história comp
 | Balão da Flora | `#FADADD` com borda decorativa |
 | Sucesso (aprovar) | `#7EB8A2` (verde sálvia) |
 | Erro (recusar) | `#D4818B` (rosa médio) |
+
+## 🔐 Cuidados de produção
+
+- Nunca versione arquivos `.env`, bancos SQLite, exports de banco ou backups com dados de usuários.
+- Antes de liberar uma nova versão, verifique o build na Vercel e teste login, cadastro, criação de história, edição de capítulo, exportação e responsividade.
+- O botão de história de exemplo **adiciona** um projeto ao usuário atual e jamais deve apagar histórias existentes.
+- Mantenha os ambientes de testes e produção com bancos distintos. Evite operações de escrita em bancos reais durante testes.
 
 ## 📄 Licença
 
