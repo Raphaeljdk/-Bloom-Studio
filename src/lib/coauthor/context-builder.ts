@@ -24,6 +24,7 @@ export interface StoryContext {
     number: number;
     title: string | null;
     summary: string | null;
+    content: string | null;
     status: string;
   }>;
   timelineEvents: Array<{
