@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Sparkles, Check, X, Flower2, RefreshCw } from "lucide-react";
+import { Send, Sparkles, Check, X, Flower2, RefreshCw, Copy, MessageCircle, Lightbulb, BookOpen, Wand2 } from "lucide-react";
 import { useChat } from "@/hooks/use-chat";
 import { VoiceInput } from "./voice-input";
 import { FormattedMessage } from "./formatted-message";
@@ -69,20 +69,26 @@ export function CoauthorChat({ storyId }: Props) {
     "Analise a estrutura da minha história",
   ];
 
+  const quickActions = [
+    { label: "Criar ideias", prompt: "Me ajude a encontrar três caminhos criativos para a próxima cena.", icon: Lightbulb },
+    { label: "Revisar texto", prompt: "Analise a coerência e o ritmo do capítulo atual sem alterar minha história.", icon: BookOpen },
+    { label: "Desenvolver trama", prompt: "Quais conflitos e motivações posso aprofundar nesta história?", icon: Wand2 },
+  ];
+
   return (
-    <div className="h-full flex flex-col bg-white">
+    <div className="h-full min-w-0 flex flex-col bg-white">
       {/* Header da Flora */}
-      <div className="flex-shrink-0 px-4 py-3 border-b border-[#E6C2C7] bg-gradient-to-r from-[#FADADD] to-[#E6C2C7]">
+      <div className="flex-shrink-0 px-4 py-3 border-b border-[#E6C2C7] bg-gradient-to-r from-[#FFF4F4] to-[#FADADD]">
         <div className="flex items-center gap-3">
           <div className="relative">
-            <div className="w-10 h-10 rounded-full flora-gradient-accent flex items-center justify-center text-xl">
+            <div className="w-11 h-11 rounded-2xl flora-gradient-accent flex items-center justify-center text-xl shadow-sm">
               🌸
             </div>
             <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-[#7EB8A2] border-2 border-white" />
           </div>
           <div className="flex-1">
             <h2 className="font-bold flora-text-primary flex items-center gap-1.5">
-              Flora
+              Flora <span className="text-[10px] font-medium rounded-full bg-white/80 px-2 py-0.5 text-[#B24C63]">Coautora IA</span>
               <Flower2 className="w-3.5 h-3.5 text-[#B24C63]" />
             </h2>
             <p className="text-xs flora-text-secondary">
@@ -96,7 +102,7 @@ export function CoauthorChat({ storyId }: Props) {
                   </span>
                 </span>
               ) : (
-                "Coautora disponível"
+                "Pronta para criar com você"
               )}
             </p>
           </div>
@@ -142,6 +148,21 @@ export function CoauthorChat({ storyId }: Props) {
                         m.content
                       )}
                     </div>
+
+                    {m.role === "ASSISTANT" && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          void navigator.clipboard.writeText(m.content)
+                            .then(() => toast.success("Resposta da Flora copiada"))
+                            .catch(() => toast.error("Não foi possível copiar"));
+                        }}
+                        className="mt-1 flex items-center gap-1 rounded-lg px-2 py-1 text-xs flora-text-secondary transition hover:bg-[#FADADD] hover:text-[#B24C63]"
+                        aria-label="Copiar resposta da Flora"
+                      >
+                        <Copy className="h-3 w-3" /> Copiar resposta
+                      </button>
+                    )}
 
                     {/* Botão "Adicionar ao documento" para respostas da Flora */}
                     {m.role === "ASSISTANT" && m.content.trim().length > 20 && !m.suggestion && (
@@ -246,13 +267,26 @@ export function CoauthorChat({ storyId }: Props) {
       </div>
 
       {/* Input */}
-      <div className="flex-shrink-0 p-3 border-t border-[#E6C2C7] bg-white">
+      <div className="flex-shrink-0 border-t border-[#E6C2C7] bg-white p-3">
+        <div className="mb-3 flex items-center gap-2 overflow-x-auto pb-1" aria-label="Sugestões rápidas">
+          {quickActions.map((action) => {
+            const Icon = action.icon;
+            return (
+              <button key={action.label} type="button" onClick={() => setInput(action.prompt)}
+                disabled={isSending}
+                className="flex shrink-0 items-center gap-1.5 rounded-full border border-[#E6C2C7] bg-[#FDF2F0] px-3 py-1.5 text-xs font-medium text-[#87495E] transition hover:border-[#C48D9E] hover:bg-[#FADADD] disabled:opacity-50">
+                <Icon className="h-3.5 w-3.5" /> {action.label}
+              </button>
+            );
+          })}
+        </div>
         <form onSubmit={handleSubmit} className="flex gap-2 items-end">
           <Textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Converse com a Flora sobre sua história..."
+            placeholder="Peça uma ideia, revisão ou ajuda com uma cena..."
+            aria-label="Mensagem para a Flora"
             rows={1}
             className="bg-[#FDF2F0] border-[#E6C2C7] focus:border-[#C48D9E] focus:ring-[#C48D9E] resize-none min-h-[44px] max-h-32 text-sm"
           />
@@ -262,6 +296,7 @@ export function CoauthorChat({ storyId }: Props) {
           />
           <Button
             type="submit"
+            aria-label={isSending ? "Flora está respondendo" : "Enviar mensagem"}
             disabled={!input.trim() || isSending}
             className="flora-gradient-accent text-white hover:opacity-90 h-11 w-11 p-0 flex-shrink-0"
           >
@@ -273,7 +308,7 @@ export function CoauthorChat({ storyId }: Props) {
           </Button>
         </form>
         <p className="text-xs flora-text-secondary mt-1.5 text-center">
-          🌸 A Flora tem acesso a todo o contexto da sua história · 🎤 Ditado disponível
+          <MessageCircle className="mr-1 inline h-3 w-3" /> Enter envia · Shift+Enter quebra linha · Você aprova as sugestões
         </p>
       </div>
 
