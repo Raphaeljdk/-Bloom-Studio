@@ -56,3 +56,11 @@ server.log
 .env
 .env.local
 .env.*.local
+
+# Bancos locais e backups gerados (não versionar dados de usuários)
+/db/*.db
+/db/*.db-*
+/download/backup/
+
+# Documentação de variáveis permitida sem valores reais
+!.env.example
