@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { getCurrentUser, ensureDemoUser } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
 
 /**
  * POST /api/seed
@@ -8,16 +8,12 @@ import { getCurrentUser, ensureDemoUser } from "@/lib/auth";
  * cronologia, anotações e uma conversa inicial com a Flora.
  */
 export async function POST() {
-  const user = await getCurrentUser();
-  const owner = user ?? (await ensureDemoUser());
-
-  // Apaga seeds antigos (apaga todas as histórias do demo)
-  if (user) {
-    await db.story.deleteMany({ where: { userId: owner.id } });
-  } else {
-    await db.story.deleteMany({ where: { userId: owner.id } });
+  const owner = await getCurrentUser();
+  if (!owner) {
+    return NextResponse.json({ error: "Faça login para criar uma história de exemplo" }, { status: 401 });
   }
 
+  // ADICIONA o exemplo sem apagar histórias, capítulos e dados existentes.
   const story = await db.story.create({
     data: {
       title: "O Jardim das Memórias Perdidas",
