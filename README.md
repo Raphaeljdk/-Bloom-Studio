@@ -71,7 +71,7 @@ Paleta rosa aplicada consistentemente em toda a aplicação:
 └──────────────────────────┬──────────────────────────────────┘
                            ↕ Prisma Client
 ┌─────────────────────────────────────────────────────────────┐
-│ DATABASE (SQLite via Prisma ORM)                            │
+│ DATABASE (PostgreSQL via Prisma ORM)                            │
 │                                                             │
 │  User → Story → ┬─ Character                                │
 │                 ├─ Chapter                                  │
@@ -168,7 +168,7 @@ src/
 # Instalar dependências
 bun install
 
-# Push do schema Prisma para SQLite
+# Ajustar schema apenas no PostgreSQL de desenvolvimento (não em produção)
 bun run db:push
 
 # Iniciar dev server
@@ -249,3 +249,15 @@ Projeto demonstrativo. Use livremente.
 ---
 
 🌸 *Onde histórias florescem com gentileza* 🌷
+
+## 🌸 Modernização — Escrita, Flora 2.0 e segurança
+
+- **Bíblia da História:** personagens, capítulos, cronologia e fatos canônicos em uma visualização.
+- **Editor de capítulos:** ferramentas Markdown, fontes, contagem de palavras, meta e cópia local durante edição.
+- **Escrita Livre:** salvamento PostgreSQL com versionamento, proteção contra conflito e recuperação de versões.
+- **Flora 2.0:** ações sugeridas ficam pendentes; o autor deve clicar em **Aprovar e aplicar**. Ações são executadas transacionalmente, uma vez.
+- **Conta:** mudança de senha disponível no dashboard. Ao trocar, sessões antigas perdem validade.
+- **Backups por história:** botão **Exportar → Backup completo (.json)**. Arquivo obtido só pelo usuário autenticado; não contém senhas.
+- **Testes contínuos:** workflow GitHub Actions cria PostgreSQL efêmero, executa TypeScript, build e testes de integrações.
+
+**Atenção:** a existência de arquivos antigos de banco ou backups no histórico Git exige remediação específica. Excluir um arquivo do último commit não elimina sua exposição histórica. Consulte [operação segura](docs/operacao-segura.md) antes de publicar.
