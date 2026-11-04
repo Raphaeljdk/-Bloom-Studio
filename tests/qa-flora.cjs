@@ -113,6 +113,29 @@ async function main() {
   expect(r, 200, "evento persistido");
   assert.equal(r.body.events.find(e => e.id === event.id).isApproved, true);
 
+  const oldSession = cookie;
+  r = await request("/api/auth/change-password", "POST", {
+    currentPassword: "isolatedLongPassword2026", newPassword: "newSecureIsolatedPassword2026",
+  });
+  expect(r, 200, "troca de senha com sessão ativa");
+  const newSession = r.cookie.split(";")[0];
+  assert.notEqual(oldSession, newSession);
+
+  cookie = oldSession;
+  r = await request("/api/stories");
+  expect(r, 401, "sessão antiga revogada automaticamente");
+
+  cookie = "";
+  r = await request("/api/auth/login", "POST", {
+    email: "qa-a-" + prefix + "@example.test", password: "isolatedLongPassword2026",
+  });
+  expect(r, 401, "senha antiga não autentica");
+
+  r = await request("/api/auth/login", "POST", {
+    email: "qa-a-" + prefix + "@example.test", password: "newSecureIsolatedPassword2026",
+  });
+  expect(r, 200, "nova senha autentica");
+
   console.log("QA_PASS " + passed.length);
   console.log(passed.join("\n"));
 }
