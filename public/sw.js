@@ -3,10 +3,10 @@
 // Cache de assets para funcionamento offline + instalação
 // ========================================================
 
-const CACHE_NAME = "bloom-studio-v1";
+const CACHE_NAME = "bloom-studio-v2-public-assets";
 const ASSETS_TO_CACHE = [
-  "/",
   "/manifest.json",
+  "/logo.svg",
 ];
 
 // Install — pré-cacheia assets essenciais
@@ -36,8 +36,10 @@ self.addEventListener("fetch", (event) => {
   // Ignora requisições não GET
   if (request.method !== "GET") return;
 
-  // Ignora API calls (precisam do servidor)
-  if (request.url.includes("/api/")) return;
+  // Nunca armazene conteúdos privados, páginas autenticadas ou endpoints de API.
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin ||
+      !(url.pathname.startsWith("/_next/static/") || ASSETS_TO_CACHE.includes(url.pathname))) return;
 
   // Ignora chrome-extension
   if (request.url.startsWith("chrome-extension://")) return;
@@ -52,6 +54,6 @@ self.addEventListener("fetch", (event) => {
         }
         return response;
       })
-      .catch(() => caches.match(request).then((cached) => cached || caches.match("/")))
+      .catch(() => caches.match(request))
   );
 });
