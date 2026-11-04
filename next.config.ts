@@ -4,6 +4,17 @@ const nextConfig: NextConfig = {
   output: "standalone",
   /* config options here */
   reactStrictMode: false,
+  async headers() {
+    return [{
+      source: "/(.*)",
+      headers: [
+        { key: "X-Content-Type-Options", value: "nosniff" },
+        { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+        { key: "X-Frame-Options", value: "DENY" },
+        { key: "Permissions-Policy", value: "geolocation=(), camera=(), microphone=(self)" },
+      ],
+    }];
+  },
 };
 
 export default nextConfig;
