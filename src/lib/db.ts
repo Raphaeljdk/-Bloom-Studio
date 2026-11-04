@@ -6,7 +6,7 @@ const globalForPrisma = globalThis as unknown as {
 }
 
 // Hash simples do schema para detectar mudanças
-const SCHEMA_HASH = 'cover-v1'
+const SCHEMA_HASH = 'writing-history-flora-v2'
 
 // Recria o cliente se o schema mudou
 if (globalForPrisma.__prismaSchemaHash !== SCHEMA_HASH) {
@@ -20,7 +20,8 @@ if (globalForPrisma.__prismaSchemaHash !== SCHEMA_HASH) {
 export const db =
   globalForPrisma.prisma ??
   new PrismaClient({
-    log: ['query'],
+    // Não registrar consultas que podem conter textos literários ou dados pessoais.
+    log: process.env.NODE_ENV === 'production' ? ['error'] : ['warn', 'error'],
   })
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db
