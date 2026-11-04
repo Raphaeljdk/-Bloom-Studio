@@ -35,7 +35,7 @@ jobs:
 
     steps:
       - name: Checkout sem credenciais persistentes
-        uses: actions/checkout@11bd71901bbe5b163ceea73d27597364c9e
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9e
 
         with:
           persist-credentials: false
