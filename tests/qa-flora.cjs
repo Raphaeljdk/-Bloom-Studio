@@ -51,6 +51,12 @@ async function main() {
   expect(r, 409, "conflito protegido");
   r = await request("/api/stories/" + storyId + "/writing-history?kind=FREEWRITE");
   expect(r, 200, "histórico de rascunhos"); assert.ok(r.body.versions.length >= 2);
+  r = await request("/api/stories/" + storyId + "/backup");
+  expect(r, 200, "backup completo autenticado");
+  assert.equal(r.body.schemaVersion, 2);
+  assert.equal(r.body.freeWrite.content, "versão beta");
+  assert.equal(r.body.story.userId, undefined);
+  assert.ok(r.body.versions.length >= 2);
 
   r = await request("/api/stories/" + storyId + "/chapters", "POST", { title: "Capítulo QA" });
   expect(r, 200, "novo capítulo"); const chapterId = r.body.id;
@@ -86,6 +92,8 @@ async function main() {
   expect(r, 404, "acesso a proposta de outro usuário bloqueado");
   r = await request("/api/stories/" + storyId + "/chat");
   expect(r, 404, "chat de outro usuário bloqueado");
+  r = await request("/api/stories/" + storyId + "/backup");
+  expect(r, 404, "backup de outro usuário bloqueado");
   r = await request("/api/suggestions/" + event.id + "/approve", "POST", {});
   expect(r, 404, "aprovação de evento de outro usuário bloqueada");
   r = await request("/api/suggestions/" + event.id + "/reject", "POST", {});
