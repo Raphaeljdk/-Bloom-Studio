@@ -22,18 +22,24 @@ function getSessionSecret(): string {
   return "bloom-studio-local-development-only-secret";
 }
 
-function sign(payload: string): string {
-  const hmac = crypto.createHmac("sha256", getSessionSecret()).update(payload).digest("hex");
+// Vincular o cookie à senha atual revoga automaticamente todas as sessões
+// quando o usuário modifica a senha, sem tabela adicional nem reset de dados.
+function getUserSessionKey(passwordHash: string): Buffer {
+  return crypto.createHmac("sha256", getSessionSecret()).update("bloom-user-session:" + passwordHash).digest();
+}
+
+function sign(payload: string, passwordHash: string): string {
+  const hmac = crypto.createHmac("sha256", getUserSessionKey(passwordHash)).update(payload).digest("hex");
   return `${payload}.${hmac}`;
 }
 
-function verify(token: string): string | null {
+function verify(token: string, passwordHash: string): string | null {
   const idx = token.lastIndexOf(".");
   if (idx < 0) return null;
   const payload = token.slice(0, idx);
   const signature = token.slice(idx + 1);
   if (!/^[a-f0-9]{64}$/i.test(signature)) return null;
-  const expected = crypto.createHmac("sha256", getSessionSecret()).update(payload).digest();
+  const expected = crypto.createHmac("sha256", getUserSessionKey(passwordHash)).update(payload).digest();
   const received = Buffer.from(signature, "hex");
   if (received.length !== expected.length || !crypto.timingSafeEqual(expected, received)) return null;
 
@@ -50,7 +56,9 @@ function verify(token: string): string | null {
  * Cria sessão para um usuário (server-side).
  */
 export async function createSession(userId: string): Promise<void> {
-  const token = sign(`${userId}:${Date.now()}`);
+  const user = await db.user.findUnique({ where: { id: userId }, select: { password: true } });
+  if (!user) throw new Error("Usuário não encontrado");
+  const token = sign(`${userId}:${Date.now()}`, user.password);
   const store = await cookies();
   store.set(SESSION_COOKIE, token, {
     httpOnly: true,
@@ -69,11 +77,17 @@ export async function getCurrentUser() {
   const token = store.get(SESSION_COOKIE)?.value;
   if (!token) return null;
 
-  const userId = verify(token);
-  if (!userId) return null;
+  if (token.length > 256) return null;
+  const payload = token.slice(0, token.lastIndexOf("."));
+  const separator = payload.lastIndexOf(":");
+  if (separator < 0) return null;
+  const candidate = payload.slice(0, separator);
+  if (!/^[a-z0-9_-]{8,80}$/i.test(candidate)) return null;
 
-  const user = await db.user.findUnique({ where: { id: userId } });
-  return user;
+  const user = await db.user.findUnique({ where: { id: candidate } });
+  if (!user) return null;
+  const userId = verify(token, user.password);
+  return userId === user.id ? user : null;
 }
 
 /**

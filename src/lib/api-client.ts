@@ -154,11 +154,17 @@ export const api = {
       assistantMessageId: string;
       displayContent: string;
       suggestions: Array<{ id: string; title: string; description: string; impact: string | null }>;
-      actions?: Array<{ confirmation: string }>;
+      proposals: Array<{ id: string; actionType: string; description: string; status: "PENDING" | "APPROVED" | "REJECTED" }>;
     }>(`/api/stories/${storyId}/chat`, {
       method: "POST",
       body: JSON.stringify({ content }),
     }),
+
+  decideFloraProposal: (storyId: string, proposalId: string, decision: "APPROVED" | "REJECTED") =>
+    request<{ proposal: { id: string; status: "APPROVED" | "REJECTED"; description: string } }>(
+      `/api/stories/${storyId}/flora-proposals/${proposalId}`,
+      { method: "PATCH", body: JSON.stringify({ decision }) }
+    ),
 
   approveSuggestion: (eventId: string) =>
     request<void>(`/api/suggestions/${eventId}/approve`, { method: "POST" }),
@@ -176,6 +182,7 @@ export const api = {
         isApproved: boolean;
         createdAt: string;
         suggestion?: { id: string; title: string; description: string; impact: string | null; isApproved: boolean };
+        proposals?: Array<{ id: string; actionType: string; description: string; status: "PENDING" | "APPROVED" | "REJECTED" }>;
       }>;
     }>(`/api/stories/${storyId}/chat`),
 

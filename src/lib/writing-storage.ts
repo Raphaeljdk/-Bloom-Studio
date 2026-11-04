@@ -52,3 +52,38 @@ export interface WritingVersionListItem {
 export async function canEditStory(storyId: string, userId: string) {
   return !!(await db.story.findFirst({ where: { id: storyId, userId }, select: { id: true } }));
 }
+
+let floraReady: Promise<void> | undefined;
+
+/** Migração aditiva, sem tocar em textos ou registros já existentes. */
+export function ensureFloraProposalStorage(): Promise<void> {
+  if (!floraReady) {
+    floraReady = (async () => {
+      await db.$executeRawUnsafe(`
+        CREATE TABLE IF NOT EXISTS "FloraProposal" (
+          "id" TEXT PRIMARY KEY,
+          "storyId" TEXT NOT NULL REFERENCES "Story"("id") ON DELETE CASCADE,
+          "messageId" TEXT NOT NULL REFERENCES "ChatMessage"("id") ON DELETE CASCADE,
+          "actionType" TEXT NOT NULL,
+          "payload" TEXT NOT NULL,
+          "description" TEXT NOT NULL,
+          "status" TEXT NOT NULL DEFAULT 'PENDING',
+          "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      await db.$executeRawUnsafe(`
+        CREATE INDEX IF NOT EXISTS "FloraProposal_story_status_date_idx"
+        ON "FloraProposal" ("storyId", "status", "createdAt" DESC)
+      `);
+      await db.$executeRawUnsafe(`
+        CREATE INDEX IF NOT EXISTS "FloraProposal_message_idx"
+        ON "FloraProposal" ("messageId")
+      `);
+    })().catch((error) => {
+      floraReady = undefined;
+      throw error;
+    });
+  }
+  return floraReady;
+}

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   Plus, Search, Flower2, BookOpen, Users, Clock,
-  Sparkles, Trash2, Calendar, LogOut, Filter, Shield
+  Sparkles, Trash2, Calendar, LogOut, Filter, Shield, KeyRound, Loader2
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useStories } from "@/hooks/use-stories";
@@ -44,6 +44,11 @@ export function Dashboard() {
   const [newDesc, setNewDesc] = useState("");
   const [newGenre, setNewGenre] = useState("");
   const [newTone, setNewTone] = useState("");
+  const [passwordOpen, setPasswordOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
 
   // Hook simples para ler o user (inclui role)
   const [userRole, setUserRole] = useState<string | undefined>(undefined);
@@ -85,6 +90,31 @@ export function Dashboard() {
     }
   };
 
+  const handleChangePassword = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (newPassword !== confirmPassword) { toast.error("As novas senhas não coincidem."); return; }
+    if (newPassword.length < 12) { toast.error("Use uma senha de pelo menos 12 caracteres."); return; }
+    setChangingPassword(true);
+    try {
+      const res = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Falha na troca de senha");
+      setPasswordOpen(false);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      toast.success("Senha atualizada. As sessões anteriores foram revogadas.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível atualizar a senha.");
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
   const handleLogout = async () => {
     const auth = (window as unknown as { __bloomAuth?: { logout?: () => Promise<void> } }).__bloomAuth;
     await auth?.logout?.();
@@ -120,6 +150,50 @@ export function Dashboard() {
           </div>
           <div className="flex items-center gap-1 sm:gap-2">
             <ThemeSwitcher />
+            <Dialog open={passwordOpen} onOpenChange={open => {
+              setPasswordOpen(open);
+              if (!open) { setCurrentPassword(""); setNewPassword(""); setConfirmPassword(""); }
+            }}>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="sm" title="Segurança da conta"
+                  className="text-[#8B6B7A] hover:bg-[#FADADD] hover:text-[#B24C63]">
+                  <KeyRound className="h-4 w-4" />
+                  <span className="ml-1 hidden sm:inline">Minha senha</span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="bg-white sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="flora-text-primary">Segurança da conta</DialogTitle>
+                </DialogHeader>
+                <p className="text-sm flora-text-secondary">
+                  Atualize sua senha regularmente. Ao alterá-la, sessões abertas em outros dispositivos são invalidadas.
+                </p>
+                <form className="space-y-4" onSubmit={event => void handleChangePassword(event)}>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="bloom-current-password">Senha atual</Label>
+                    <Input id="bloom-current-password" type="password" autoComplete="current-password"
+                      required value={currentPassword} onChange={event => setCurrentPassword(event.target.value)} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="bloom-new-password">Nova senha (mínimo 12 caracteres)</Label>
+                    <Input id="bloom-new-password" type="password" autoComplete="new-password"
+                      minLength={12} maxLength={128} required value={newPassword}
+                      onChange={event => setNewPassword(event.target.value)} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="bloom-confirm-password">Confirme a nova senha</Label>
+                    <Input id="bloom-confirm-password" type="password" autoComplete="new-password"
+                      minLength={12} maxLength={128} required value={confirmPassword}
+                      onChange={event => setConfirmPassword(event.target.value)} />
+                  </div>
+                  <Button type="submit" className="w-full flora-gradient-accent text-white" disabled={changingPassword}>
+                    {changingPassword ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> :
+                      <KeyRound className="mr-2 h-4 w-4" />}
+                    {changingPassword ? "Atualizando..." : "Atualizar minha senha"}
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
             {userRole === "ADMIN" && (
               <Button
                 onClick={() => setView("admin")}

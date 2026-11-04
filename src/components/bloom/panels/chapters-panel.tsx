@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Trash2, BookOpen, X, Save, ChevronRight, History, RotateCcw, Loader2 } from "lucide-react";
+import { Plus, Trash2, BookOpen, X, Save, ChevronRight, History, RotateCcw, Loader2, Bold, Italic, Heading1, Minus, Type, Target, CheckCircle2, AlertTriangle } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api-client";
 import { useStoryStore, type Chapter } from "@/stores/story-store";
@@ -240,11 +240,34 @@ function ChapterEditor({
   const [loadingVersions, setLoadingVersions] = useState(false);
   const [selectedVersion, setSelectedVersion] = useState<{ id: string; data: ChapterVersionDetail } | null>(null);
   const [restoring, setRestoring] = useState(false);
+  const [fontMode, setFontMode] = useState<"serif" | "sans" | "mono">("serif");
+  const [wordGoal, setWordGoal] = useState(1000);
+  const [saveState, setSaveState] = useState<"saved" | "editing" | "saving" | "error">("saved");
+  const [localBackup, setLocalBackup] = useState<string | null>(null);
+  const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingRef = useRef<Partial<Chapter>>({});
   const updateRef = useRef(onUpdate);
   const pendingPromiseRef = useRef<Promise<unknown>>(Promise.resolve());
   updateRef.current = onUpdate;
+  const draftKey = `bloom-chapter-draft-${chapter.id}`;
+  const prefKey = `bloom-editor-prefs-${storyId}`;
+  const contentRef = useRef(content);
+  contentRef.current = content;
+
+  useEffect(() => {
+    try {
+      const prefs = JSON.parse(localStorage.getItem(prefKey) || "{}") as { font?: string; goal?: number };
+      if (["serif", "sans", "mono"].includes(prefs.font || "")) setFontMode(prefs.font as "serif" | "sans" | "mono");
+      if (Number.isSafeInteger(prefs.goal) && prefs.goal! >= 50 && prefs.goal! <= 100000) setWordGoal(prefs.goal!);
+      const draft = localStorage.getItem(draftKey);
+      if (draft !== null && draft !== (chapter.content || "")) setLocalBackup(draft);
+    } catch { /* um bloqueio no armazenamento local não impede escrita no servidor */ }
+  }, [draftKey, prefKey, chapter.content]);
+
+  const savePrefs = (font: "serif" | "sans" | "mono", goal: number) => {
+    try { localStorage.setItem(prefKey, JSON.stringify({ font, goal })); } catch { /* local opcional */ }
+  };
 
   // Une as edições dos campos antes de salvar, evitando perder alterações rápidas.
   const flushSave = async (): Promise<void> => {
@@ -253,14 +276,34 @@ function ChapterEditor({
     const patch = pendingRef.current;
     pendingRef.current = {};
     if (Object.keys(patch).length > 0) {
+      setSaveState("saving");
       pendingPromiseRef.current = pendingPromiseRef.current
         .catch(() => undefined)
-        .then(() => updateRef.current(patch));
+        .then(async () => {
+          try {
+            await updateRef.current(patch);
+            if (Object.keys(pendingRef.current).length === 0 && 
+                (patch.content === undefined || contentRef.current === patch.content)) {
+              setSaveState("saved");
+              if (patch.content !== undefined) {
+                try { localStorage.removeItem(draftKey); } catch {}
+                setLocalBackup(null);
+              }
+            }
+          } catch (error) {
+            setSaveState("error");
+            throw error;
+          }
+        });
     }
     await pendingPromiseRef.current;
   };
 
   const scheduleSave = (patch: Partial<Chapter>) => {
+    setSaveState("editing");
+    if (patch.content !== undefined) {
+      try { localStorage.setItem(draftKey, patch.content || ""); } catch {}
+    }
     pendingRef.current = { ...pendingRef.current, ...patch };
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => { void flushSave().catch(() => undefined); }, 1200);
@@ -321,12 +364,52 @@ function ChapterEditor({
     } finally { setRestoring(false); }
   };
 
+  const words = content.trim().split(/\\s+/).filter(Boolean).length;
+  const chars = content.length;
+  const readingMinutes = Math.max(1, Math.ceil(words / 200));
+  const goalPercent = Math.min(100, Math.round((words / wordGoal) * 100));
+
+  const insertMarkdown = (before: string, after = "") => {
+    const el = textAreaRef.current;
+    if (!el) return;
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    const selected = content.slice(start, end);
+    const replacement = before + selected + after;
+    const next = content.slice(0, start) + replacement + content.slice(end);
+    setContent(next);
+    scheduleSave({ content: next });
+    requestAnimationFrame(() => {
+      el.focus();
+      const cursor = start + before.length;
+      el.setSelectionRange(cursor, cursor + selected.length);
+    });
+  };
+
+  const recoverDraft = () => {
+    if (localBackup === null) return;
+    if (!window.confirm("Recuperar o rascunho deste navegador? O texto salvo no banco poderá ser encontrado no histórico de versões.")) return;
+    setContent(localBackup);
+    contentRef.current = localBackup;
+    scheduleSave({ content: localBackup });
+    setLocalBackup(null);
+  };
+
+  const backSafely = async () => {
+    try {
+      await flushSave();
+      onBack();
+    } catch {
+      toast.error("Seu texto não foi salvo no banco. Tente novamente antes de voltar.");
+    }
+  };
+
   const statusInfo = STATUS_LABELS[status] || STATUS_LABELS.DRAFT;
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-        <Button variant="ghost" onClick={onBack} className="text-[#8B6B7A]">
+        <Button variant="ghost" onClick={() => void backSafely()} className="text-[#8B6B7A]">
           <ChevronRight className="w-4 h-4 rotate-180 mr-1" />
           Voltar à lista
         </Button>
@@ -355,6 +438,77 @@ function ChapterEditor({
               <SelectItem value="COMPLETED">Concluído</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+      </div>
+
+      {localBackup !== null && (
+        <div role="alert" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
+          <span><AlertTriangle className="mr-2 inline h-4 w-4" /> Existe um rascunho local diferente do texto do servidor.</span>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={recoverDraft}>Recuperar rascunho</Button>
+            <Button variant="ghost" size="sm" onClick={() => { setLocalBackup(null); localStorage.removeItem(draftKey); }}>Usar versão da nuvem</Button>
+          </div>
+        </div>
+      )}
+
+      <div className="mb-5 rounded-xl border border-[#E6C2C7] bg-white p-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap gap-1">
+            <Button variant="ghost" size="sm" title="Negrito Markdown" aria-label="Negrito" onClick={() => insertMarkdown("**", "**")}>
+              <Bold className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="sm" title="Itálico Markdown" aria-label="Itálico" onClick={() => insertMarkdown("*", "*")}>
+              <Italic className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="sm" title="Título de cena Markdown" aria-label="Título de cena" onClick={() => insertMarkdown("\\n## ", "\\n")}>
+              <Heading1 className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="sm" title="Separador de cena" aria-label="Separador de cena" onClick={() => insertMarkdown("\\n\\n---\\n\\n")}>
+              <Minus className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="flex items-center gap-2">
+            <Type className="h-4 w-4 text-[#B24C63]" />
+            <select aria-label="Fonte do editor" value={fontMode} onChange={event => {
+              const font = event.target.value as typeof fontMode;
+              setFontMode(font);
+              savePrefs(font, wordGoal);
+            }} className="rounded-lg border border-[#E6C2C7] bg-white px-2 py-1.5 text-xs flora-text-primary">
+              <option value="serif">Literária</option>
+              <option value="sans">Moderna</option>
+              <option value="mono">Máquina de escrever</option>
+            </select>
+            <Button size="sm" variant="outline" onClick={() => void flushSave().catch(() => toast.error("Falha ao salvar capítulo."))}>
+              <Save className="mr-1 h-3.5 w-3.5" /> Salvar
+            </Button>
+          </div>
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[#F3E1E3] pt-3 text-xs flora-text-secondary">
+          <span><strong className="flora-text-primary">{words}</strong> palavras</span>
+          <span>{chars.toLocaleString("pt-BR")} caracteres</span>
+          <span>~{readingMinutes} min de leitura</span>
+          <span className="ml-auto flex items-center gap-1" role="status" aria-live="polite">
+            {saveState === "saving" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> :
+              saveState === "saved" ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" /> :
+                saveState === "error" ? <AlertTriangle className="h-3.5 w-3.5 text-red-600" /> : <Save className="h-3.5 w-3.5" />}
+            {saveState === "saving" ? "Salvando..." : saveState === "saved" ? "Salvo no banco" :
+              saveState === "error" ? "Erro: rascunho local preservado" : "Alterações pendentes"}
+          </span>
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs flora-text-secondary">
+          <Target className="h-3.5 w-3.5 text-[#B24C63]" />
+          <label htmlFor="chapter-word-goal">Meta do capítulo</label>
+          <input id="chapter-word-goal" type="number" min={50} max={100000} step={50}
+            value={wordGoal} onChange={event => {
+              const value = Number(event.target.value);
+              if (!Number.isSafeInteger(value) || value < 50 || value > 100000) return;
+              setWordGoal(value);
+              savePrefs(fontMode, value);
+            }} className="w-20 rounded-md border border-[#E6C2C7] p-1 text-center" />
+          <div className="h-1.5 min-w-24 flex-1 overflow-hidden rounded-full bg-[#F3E1E3]">
+            <div className="h-full rounded-full bg-[#B24C63]" style={{ width: `${goalPercent}%` }} />
+          </div>
+          <span>{goalPercent}%</span>
         </div>
       </div>
 
@@ -402,15 +556,24 @@ function ChapterEditor({
             </span>
           </div>
           <Textarea
+            ref={textAreaRef}
             value={content}
             onChange={(e) => {
               setContent(e.target.value);
+              contentRef.current = e.target.value;
               scheduleSave({ content: e.target.value });
+            }}
+            onKeyDown={(e) => {
+              if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+                e.preventDefault();
+                void flushSave().catch(() => toast.error("Falha ao salvar capítulo."));
+              }
             }}
             placeholder="Comece a escrever... A Flora pode ajudar com cenas, descrições e desenvolvimento."
             rows={20}
+            spellCheck
             onBlur={() => { void flushSave().catch(() => undefined); }}
-            className="bg-white border-[#E6C2C7] resize-y font-serif text-base leading-relaxed flora-text-primary"
+            className={`min-h-[52vh] resize-y border-[#E6C2C7] bg-white p-5 text-base leading-8 flora-text-primary sm:p-7 ${fontMode === "serif" ? "font-serif" : fontMode === "mono" ? "font-mono" : "font-sans"}`}
           />
           <p className="text-xs flora-text-secondary mt-2 italic">
             💮 Salva após 1,2 segundo sem digitar ou ao sair do campo.

@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
-  ArrowLeft, Users, BookOpen, Clock, Sparkles, StickyNote,
+  ArrowLeft, BookMarked, Users, BookOpen, Clock, Sparkles, StickyNote,
   ChevronLeft, ChevronRight, Flower2, FileText,
   Settings, Check, X, Pencil, Sparkle, BarChart3, Search, Target, Menu, BookOpenCheck, Pen
 } from "lucide-react";
@@ -12,6 +12,7 @@ import { useUIStore, type StorySection } from "@/stores/ui-store";
 import { useStoryDetail } from "@/hooks/use-stories";
 import { StorySidebar } from "./story-sidebar";
 import { DocumentPanel } from "./panels/document-panel";
+import { StoryBiblePanel } from "./panels/story-bible-panel";
 import { CharactersPanel } from "./panels/characters-panel";
 import { ChaptersPanel } from "./panels/chapters-panel";
 import { TimelinePanel } from "./panels/timeline-panel";
@@ -45,6 +46,7 @@ interface StoryMeta {
 
 const SECTION_INFO: Record<StorySection, { label: string; icon: typeof Users; description: string }> = {
   document: { label: "Documento", icon: FileText, description: "Visão organizada de toda a história" },
+  bible: { label: "Bíblia da História", icon: BookMarked, description: "Elenco, fatos, capítulos e cronologia do universo" },
   characters: { label: "Personagens", icon: Users, description: "Quem habita sua história" },
   chapters: { label: "Capítulos", icon: BookOpen, description: "A estrutura narrativa" },
   freewrite: { label: "Escrita Livre", icon: Pen, description: "Espaço sem estrutura para brainstorm" },
@@ -385,6 +387,7 @@ export function StoryEditor() {
           </div>
           <div className="flex-1 overflow-y-auto">
             {currentSection === "document" && <DocumentPanel storyId={storyId} />}
+            {currentSection === "bible" && <StoryBiblePanel storyId={storyId} />}
             {currentSection === "characters" && <CharactersPanel storyId={storyId} />}
             {currentSection === "chapters" && <ChaptersPanel storyId={storyId} />}
             {currentSection === "timeline" && <TimelinePanel storyId={storyId} />}
