@@ -49,6 +49,9 @@ export function FocusMode({ open, onClose, storyId }: Props) {
   // Quando o usuário troca de capítulo no select, atualiza normalmente
   const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
   const [localContent, setLocalContent] = useState("");
+  const pendingRef = useRef<{ chapterId: string; content: string } | null>(null);
+  const savingRef = useRef<Promise<void>>(Promise.resolve());
+  const [saveStatus, setSaveStatus] = useState<"saved" | "editing" | "saving" | "error">("saved");
 
   // Deriva o capítulo atual: preferência do usuário, senão o primeiro disponível
   const currentChapterId = selectedChapterId ?? firstChapterWithContent?.id ?? null;
@@ -56,13 +59,63 @@ export function FocusMode({ open, onClose, storyId }: Props) {
   // Conteúdo exibido: se o usuário editou, usa localContent; senão usa o do capítulo
   const chapterContent = currentChapterId === selectedChapterId ? localContent : (currentChapter?.content ?? "");
   const setChapterContent = (text: string) => {
+    if (!currentChapterId) return;
     setSelectedChapterId(currentChapterId);
     setLocalContent(text);
+    pendingRef.current = { chapterId: currentChapterId, content: text };
+    setSaveStatus("editing");
+    try { localStorage.setItem(`bloom-chapter-draft-${currentChapterId}`, text); } catch {}
   };
-  const setChapterId = (id: string) => {
-    const ch = data?.chapters.find((c) => c.id === id);
+
+  const savePending = async (): Promise<boolean> => {
+    const pending = pendingRef.current;
+    if (!pending) {
+      await savingRef.current.catch(() => undefined);
+      return saveStatus !== "error";
+    }
+    pendingRef.current = null;
+    setSaveStatus("saving");
+    savingRef.current = savingRef.current.catch(() => undefined).then(async () => {
+      const res = await fetch(`/api/stories/${storyId}/chapters/${pending.chapterId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: pending.content }),
+      });
+      if (!res.ok) throw new Error("Falha no salvamento do capítulo");
+      if (!pendingRef.current || pendingRef.current.chapterId !== pending.chapterId) {
+        const all = useStoryStore.getState().currentStory;
+        if (all) {
+          useStoryStore.getState().updateChapter(pending.chapterId, { content: pending.content });
+        }
+        try { localStorage.removeItem(`bloom-chapter-draft-${pending.chapterId}`); } catch {}
+      }
+      setSaveStatus(pendingRef.current ? "editing" : "saved");
+    });
+    try {
+      await savingRef.current;
+      return true;
+    } catch {
+      if (!pendingRef.current) pendingRef.current = pending;
+      setSaveStatus("error");
+      toast.error("Falha ao salvar. O rascunho continua neste dispositivo.");
+      return false;
+    }
+  };
+
+  const setChapterId = async (id: string) => {
+    if (!(await savePending())) return;
+    const ch = useStoryStore.getState().currentStory?.chapters.find(c => c.id === id);
     setSelectedChapterId(id);
     setLocalContent(ch?.content ?? "");
+    setSaveStatus("saved");
+  };
+
+  const closeSafely = async () => {
+    if (!(await savePending())) {
+      toast.error("Seu texto não foi salvo na nuvem. Tente novamente antes de sair do Modo Foco.");
+      return;
+    }
+    onClose();
   };
 
   // Timer
@@ -111,22 +164,12 @@ export function FocusMode({ open, onClose, storyId }: Props) {
     setSecondsLeft(WRITING_MINUTES * 60);
   };
 
-  // Auto-save do capítulo (debounce 2s) — só salva se o usuário editou
+  // Auto-save com cópia local. Um conteúdo apagado também é salvo.
   useEffect(() => {
-    if (!currentChapterId || !localContent) return;
-    const t = setTimeout(async () => {
-      try {
-        await fetch(`/api/stories/${storyId}/chapters/${currentChapterId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content: localContent }),
-        });
-      } catch {
-        // ignore
-      }
-    }, 2000);
-    return () => clearTimeout(t);
-  }, [localContent, currentChapterId, storyId]);
+    if (!open || !pendingRef.current) return;
+    const timer = setTimeout(() => { void savePending(); }, 1500);
+    return () => clearTimeout(timer);
+  }, [localContent, selectedChapterId, open]);
 
   if (!open) return null;
 
@@ -166,7 +209,7 @@ export function FocusMode({ open, onClose, storyId }: Props) {
               ))}
             </div>
             <Button
-              onClick={onClose}
+              onClick={() => void closeSafely()}
               variant="ghost"
               size="sm"
               className="text-white hover:bg-white/15"
@@ -251,7 +294,7 @@ export function FocusMode({ open, onClose, storyId }: Props) {
                   value={currentChapterId || ""}
                   onChange={(e) => {
                     const ch = data.chapters.find((c) => c.id === e.target.value);
-                    if (ch) setChapterId(ch.id);
+                    if (ch) void setChapterId(ch.id);
                   }}
                   className="bg-transparent text-white/80 text-sm border-0 focus:outline-none cursor-pointer"
                 >
@@ -270,7 +313,7 @@ export function FocusMode({ open, onClose, storyId }: Props) {
                 style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
               />
               <p className="text-xs text-white/40 mt-4 max-w-3xl mx-auto">
-                Salvamento automático · {currentWords} palavras
+                {saveStatus === "saving" ? "Salvando..." : saveStatus === "editing" ? "Alterações pendentes" : saveStatus === "error" ? "Falha ao salvar — cópia local preservada" : "Salvo no banco"} · {currentWords} palavras
               </p>
             </>
           ) : (
